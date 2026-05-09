@@ -50,17 +50,47 @@ jobs:
             exit 1
           fi
 
-          if ! git merge-base --is-ancestor origin/main "${HEAD_SHA}"; then
-            echo "main diverged from develop. Automatic promotion requires fast-forward history."
-            exit 1
-          fi
-
           existing_tag="$(git tag --points-at "${HEAD_SHA}" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n1 || true)"
           current_main_sha="$(git rev-parse origin/main)"
+          push_mode="fast-forward"
 
           if [ "${current_main_sha}" = "${HEAD_SHA}" ] && [ -n "${existing_tag}" ]; then
             echo "Commit already promoted to main with tag ${existing_tag}."
             exit 0
+          fi
+
+          if ! git merge-base --is-ancestor origin/main "${HEAD_SHA}"; then
+            if ! git rev-parse origin/main^ >/dev/null 2>&1; then
+              echo "main diverged from develop. Automatic promotion requires fast-forward history."
+              exit 1
+            fi
+
+            bootstrap_parent_sha="$(git rev-parse origin/main^)"
+            bootstrap_changed_files="$(git diff --name-only "${bootstrap_parent_sha}" origin/main)"
+            bootstrap_file=".github/workflows/promote-main.yml"
+
+            if [ "${bootstrap_changed_files}" != "${bootstrap_file}" ]; then
+              echo "main diverged from develop with non-bootstrap changes. Manual reconciliation required."
+              exit 1
+            fi
+
+            if ! git merge-base --is-ancestor "${bootstrap_parent_sha}" "${HEAD_SHA}"; then
+              echo "main diverged from develop before the bootstrap commit. Manual reconciliation required."
+              exit 1
+            fi
+
+            if ! git cat-file -e "${HEAD_SHA}:${bootstrap_file}" 2>/dev/null; then
+              echo "Approved develop commit does not contain ${bootstrap_file}."
+              exit 1
+            fi
+
+            if ! diff -u <(git show "origin/main:${bootstrap_file}") <(git show "${HEAD_SHA}:${bootstrap_file}") >/dev/null; then
+              echo "Bootstrap workflow content differs between main and develop. Manual reconciliation required."
+              exit 1
+            fi
+
+            push_mode="bootstrap-force"
+            echo "Detected bootstrap-only divergence on main. Proceeding with force-with-lease."
           fi
 
           latest_tag="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | head -n1)"
@@ -84,7 +114,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git push origin "${HEAD_SHA}:refs/heads/main"
+          if [ "${push_mode}" = "bootstrap-force" ]; then
+            git push --force-with-lease=refs/heads/main:${current_main_sha} origin "${HEAD_SHA}:refs/heads/main"
+          else
+            git push origin "${HEAD_SHA}:refs/heads/main"
+          fi
           git tag -a "${next_tag}" "${HEAD_SHA}" -m "release: ${next_tag}"
           git push origin "${next_tag}"
 

@@ -1,0 +1,24 @@
+{
+  "name": "Gerador de Orçamento Dev",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/gerador-orcamento",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": [
+        "bradlc.vscode-tailwindcss",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "dsznajder.es7-react-js-snippets",
+        "lucide.lucide-vscode"
+      ]
+    }
+  },
+  "remoteUser": "node",
+  "postCreateCommand": "bash .devcontainer/setup.sh"
+}

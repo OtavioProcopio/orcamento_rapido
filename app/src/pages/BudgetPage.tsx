@@ -14,6 +14,7 @@ import type { Budget, BudgetClient, BudgetItem } from "../types";
 import { budgetSchema } from "../utils/budgetSchema";
 import { maskCpfCnpj } from "../utils/document";
 import { maskPhone } from "../utils/maskPhone";
+import { profileSchema } from "../utils/profileSchema";
 
 const formatCurrency = (value: number, currency: string = "BRL") => {
   return value.toLocaleString("pt-BR", { style: "currency", currency });
@@ -169,6 +170,12 @@ export function BudgetPage() {
     logo: "",
     pixKey: "",
   };
+  const isProfileReady = useMemo(
+    () => Boolean(profile && profileSchema.safeParse(profile).success),
+    [profile],
+  );
+  const profileRequiredMessage =
+    "Cadastre os dados da sua empresa em Perfil antes de salvar um orçamento.";
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -402,6 +409,11 @@ export function BudgetPage() {
   };
 
   const handleSaveDraft = async () => {
+    if (!isProfileReady) {
+      setSubmitError(profileRequiredMessage);
+      return;
+    }
+
     if (!validateBudget()) {
       return;
     }
@@ -436,16 +448,29 @@ export function BudgetPage() {
           </h2>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              void handleSaveDraft();
-            }}
-            disabled={saving || budgetsLoading}
-            className="flex items-center gap-2 rounded-xl bg-blue-500 px-5 py-2 font-bold text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Save size={18} /> {saving ? "Salvando..." : "Salvar Orçamento"}
-          </button>
+          {isProfileReady ? (
+            <button
+              type="button"
+              onClick={() => {
+                void handleSaveDraft();
+              }}
+              disabled={saving || budgetsLoading || profileLoading}
+              className="flex items-center gap-2 rounded-xl bg-blue-500 px-5 py-2 font-bold text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Save size={18} /> {saving ? "Salvando..." : "Salvar Orçamento"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                void navigate("/profile");
+              }}
+              disabled={profileLoading}
+              className="flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2 font-bold text-slate-950 shadow-sm shadow-amber-500/20 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Save size={18} /> Cadastrar Empresa
+            </button>
+          )}
         </div>
       </header>
 
@@ -462,6 +487,22 @@ export function BudgetPage() {
             {profileLoading || budgetsLoading ? (
               <div className="mb-4 rounded-xl border border-white/10 bg-white/4 px-4 py-3 text-sm text-slate-300">
                 Carregando dados locais...
+              </div>
+            ) : null}
+            {!profileLoading && !isProfileReady ? (
+              <div className="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <span>{profileRequiredMessage}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void navigate("/profile");
+                    }}
+                    className="rounded-lg bg-amber-400 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-950 transition hover:bg-amber-300"
+                  >
+                    Ir para Perfil
+                  </button>
+                </div>
               </div>
             ) : null}
             <AccordionItem

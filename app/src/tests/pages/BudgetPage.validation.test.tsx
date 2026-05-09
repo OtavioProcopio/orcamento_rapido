@@ -1,7 +1,7 @@
 import { MemoryRouter } from "react-router-dom";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Budget } from "../../types";
+import type { Budget, MeiProfile } from "../../types";
 import { BudgetPage } from "../../pages/BudgetPage";
 
 const navigateMock = jest.fn();
@@ -9,6 +9,12 @@ const addBudgetMock = jest.fn();
 const updateBudgetMock = jest.fn();
 
 let budgets: Budget[] = [];
+let profile: MeiProfile | null = {
+  companyName: "Empresa QA",
+  userName: "Responsavel QA",
+  phone: "11999999999",
+  pixKey: "",
+};
 
 jest.mock("react-router-dom", () => {
   const actual: typeof import("react-router-dom") =
@@ -31,7 +37,7 @@ jest.mock("../../hooks/useBudget", () => ({
 
 jest.mock("../../hooks/useProfile", () => ({
   useProfile: () => ({
-    profile: null,
+    profile,
     loading: false,
     error: null,
   }),
@@ -60,6 +66,12 @@ const fillRequiredFields = async () => {
 describe("BudgetPage validation flows", () => {
   beforeEach(() => {
     budgets = [];
+    profile = {
+      companyName: "Empresa QA",
+      userName: "Responsavel QA",
+      phone: "11999999999",
+      pixKey: "",
+    };
     navigateMock.mockReset();
     addBudgetMock.mockReset();
     updateBudgetMock.mockReset();
@@ -81,6 +93,30 @@ describe("BudgetPage validation flows", () => {
     expect(addBudgetMock).not.toHaveBeenCalled();
     expect(updateBudgetMock).not.toHaveBeenCalled();
     expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("blocks saving when company profile is missing", async () => {
+    profile = null;
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(
+      screen.getByText(
+        "Cadastre os dados da sua empresa em Perfil antes de salvar um orçamento.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Cadastrar Empresa/i }),
+    ).toBeInTheDocument();
+
+    await fillRequiredFields();
+    await user.click(
+      screen.getByRole("button", { name: /Cadastrar Empresa/i }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledWith("/profile");
+    expect(addBudgetMock).not.toHaveBeenCalled();
+    expect(updateBudgetMock).not.toHaveBeenCalled();
   });
 
   it("blocks saving when quantity is zero", async () => {

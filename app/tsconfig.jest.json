@@ -4,7 +4,8 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "verbatimModuleSyntax": false,
-    "noEmit": false,
+    "noEmit": true,
+    "ignoreDeprecations": "6.0",
     "jsx": "react-jsx",
     "types": ["vite/client", "jest", "node", "@testing-library/jest-dom"]
   },

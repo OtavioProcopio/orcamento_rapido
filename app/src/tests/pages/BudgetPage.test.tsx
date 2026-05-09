@@ -3,9 +3,20 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BudgetPage } from "../../pages/BudgetPage";
 
+const PROFILE_KEY = "@OrcaRapido:mei_profile";
+
 describe("BudgetPage", () => {
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem(
+      PROFILE_KEY,
+      JSON.stringify({
+        companyName: "Empresa Real",
+        userName: "Pessoa Responsavel",
+        phone: "11999999999",
+        pixKey: "",
+      }),
+    );
   });
 
   it("renders page header and live preview placeholders", () => {
@@ -114,6 +125,7 @@ describe("BudgetPage", () => {
       </MemoryRouter>,
     );
 
+    await screen.findByRole("button", { name: /Salvar Orçamento/i });
     await user.click(screen.getByRole("button", { name: /Salvar Orçamento/i }));
 
     expect(

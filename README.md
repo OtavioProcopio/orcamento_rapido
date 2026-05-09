@@ -1,6 +1,6 @@
 # Gerador de Orçamento
 
-Sistema fullstack moderno para emissão e gestão de orçamentos profissionais. O foco é simples: dar ao MEI uma ferramenta direta, confiável e rápida para transformar operação manual em processo digital.
+Sistema para emissão e gestão de orçamentos profissionais com foco em MEIs e autônomos. O objetivo é reduzir operação manual, padronizar o processo e manter previsibilidade técnica na evolução do produto.
 
 ## Objetivo
 
@@ -12,14 +12,11 @@ Sistema fullstack moderno para emissão e gestão de orçamentos profissionais. 
 
 | Camada | Tecnologia |
 | --- | --- |
-| Frontend | React 18+ |
+| Frontend | React |
 | Linguagem | TypeScript |
 | Estilo | Tailwind CSS |
 | Build | Vite |
 | Testes | Jest |
-| Backend/Data | Supabase |
-
-Nota: o repositório atual concentra o frontend e a esteira de qualidade. A camada Supabase faz parte da stack prevista do sistema.
 
 ## Arquitetura e Qualidade
 
@@ -62,11 +59,12 @@ Nota: o repositório atual concentra o frontend e a esteira de qualidade. A cama
 
 | Branch | Papel |
 | --- | --- |
-| `develop` | Integra novas features, ajustes e validações contínuas |
-| `main` | Recebe código estabilizado, releases e tags de versão |
+| `develop` | Branch de integração validada por CI |
+| `main` | Branch de release atualizada somente após CI verde em `develop` |
 
 Regras práticas:
 
 - Novas features entram por `develop`.
-- Merge em `main` deve ocorrer apenas com validação aprovada.
-- Releases usam versionamento semântico com tags `vX.Y.Z`.
+- Todo `push` em `develop` executa `make validate`.
+- Se o CI de `develop` passar, a automação promove o mesmo commit para `main`.
+- Cada promoção cria uma nova tag semântica `vX.Y.Z` com incremento automático de `patch`.

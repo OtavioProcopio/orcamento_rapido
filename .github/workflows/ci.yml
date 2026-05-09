@@ -10,11 +10,8 @@ on:
 
 jobs:
   validate:
+    name: validate
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: .
 
     steps:
       - name: Checkout repository

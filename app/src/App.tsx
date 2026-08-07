@@ -11,7 +11,7 @@ import { LegalPage } from "./pages/LegalPage";
 
 export function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={__APP_BASENAME__}>
       <ErrorBoundary>
         <main className="min-h-screen bg-slate-900 text-slate-100 selection:bg-blue-500/30">
           <Routes>

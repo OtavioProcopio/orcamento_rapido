@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import logoImage from "../assets/logo.svg";
 import { useBudget } from "../hooks/useBudget";
 import { useProfile } from "../hooks/useProfile";
@@ -20,7 +20,6 @@ export function LandingPage() {
     return "/profile";
   }, [budgets.length, profile]);
 
-  const ctaLabel = budgets.length > 0 || profile ? "Começar a usar" : "Começar a usar";
   const isLoading = budgetsLoading || profileLoading;
 
   return (
@@ -74,13 +73,14 @@ export function LandingPage() {
             <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
               <button
                 type="button"
+                data-testid="landing-cta"
                 disabled={isLoading}
                 onClick={() => {
                   void navigate(ctaTarget);
                 }}
                 className="inline-flex min-h-14 items-center justify-center rounded-2xl bg-orange-500 px-7 py-4 text-base font-extrabold text-slate-950 shadow-[0_20px_50px_rgba(249,115,22,0.38)] transition hover:translate-y-[-1px] hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isLoading ? "Carregando..." : ctaLabel}
+                {isLoading ? "Carregando..." : "Começar a usar"}
               </button>
               <p className="text-sm text-slate-400">
                 Primeiro acesso: cadastro da empresa. Quem já usa entra direto
@@ -234,6 +234,30 @@ export function LandingPage() {
             </div>
           </article>
         </section>
+
+        <footer className="flex flex-col gap-3 border-t border-white/10 py-8 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+          <p>Orça Rápido — dados salvos localmente neste navegador.</p>
+          <nav className="flex flex-wrap gap-x-5 gap-y-2">
+            <Link
+              to="/privacy"
+              className="underline-offset-4 hover:text-slate-200 hover:underline"
+            >
+              Política de privacidade
+            </Link>
+            <Link
+              to="/terms"
+              className="underline-offset-4 hover:text-slate-200 hover:underline"
+            >
+              Termos de uso
+            </Link>
+            <Link
+              to="/storage-notice"
+              className="underline-offset-4 hover:text-slate-200 hover:underline"
+            >
+              Aviso de armazenamento local
+            </Link>
+          </nav>
+        </footer>
       </div>
     </div>
   );

@@ -17,7 +17,6 @@ export type BudgetItem = {
   quantidade: number;
   unidade: string;
   valorUnitario: number;
-  moeda: CurrencyCode;
 };
 
 export type BudgetClient = {

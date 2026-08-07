@@ -156,13 +156,10 @@ export const BudgetPreview = forwardRef<HTMLDivElement, BudgetPreviewProps>(
                     {item.unidade}
                   </td>
                   <td className="py-3 px-4 text-right text-slate-600 font-medium">
-                    {formatCurrency(item.valorUnitario, item.moeda)}
+                    {formatCurrency(item.valorUnitario)}
                   </td>
                   <td className="py-3 px-4 text-right font-bold text-slate-800">
-                    {formatCurrency(
-                      item.quantidade * item.valorUnitario,
-                      item.moeda,
-                    )}
+                    {formatCurrency(item.quantidade * item.valorUnitario)}
                   </td>
                 </tr>
               ))}

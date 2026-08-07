@@ -151,6 +151,136 @@ describe("BudgetPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("fills and persists every client field, including status", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <BudgetPage />
+      </MemoryRouter>,
+    );
+
+    await user.type(
+      screen.getByRole("textbox", { name: /Nome do Cliente/i }),
+      "Cliente Completo",
+    );
+    await user.type(
+      screen.getByRole("textbox", { name: /CPF \/ CNPJ/i }),
+      "52998224725",
+    );
+    await user.type(
+      screen.getByRole("textbox", { name: /Email do Cliente/i }),
+      "cliente@completo.com",
+    );
+    await user.type(
+      screen.getByRole("textbox", { name: /Endereço Completo/i }),
+      "Rua Completa, 123",
+    );
+    await user.type(
+      screen.getByRole("textbox", { name: /WhatsApp do Cliente/i }),
+      "11988887777",
+    );
+    await user.selectOptions(screen.getByRole("combobox", { name: /Status/i }), "sent");
+
+    await user.click(screen.getByRole("button", { name: /2. Itens e Valores/i }));
+    await user.type(
+      screen.getByPlaceholderText("Ex: Desenvolvimento de Site"),
+      "Servico",
+    );
+    await user.clear(screen.getByRole("spinbutton", { name: /Valor Unitário/i }));
+    await user.type(screen.getByRole("spinbutton", { name: /Valor Unitário/i }), "10");
+
+    await user.click(screen.getByRole("button", { name: /Salvar Orçamento/i }));
+
+    await waitFor(() =>
+      expect(localStorage.getItem("@OrcaRapido:budgets")).toBeTruthy(),
+    );
+    const budgets = JSON.parse(localStorage.getItem("@OrcaRapido:budgets") || "[]");
+    expect(budgets[0]).toMatchObject({
+      status: "sent",
+      client: {
+        name: "Cliente Completo",
+        document: "529.982.247-25",
+        email: "cliente@completo.com",
+        address: "Rua Completa, 123",
+        phone: "(11) 98888-7777",
+      },
+    });
+  });
+
+  it("shows a validation error for an invalid client email", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <BudgetPage />
+      </MemoryRouter>,
+    );
+
+    await user.type(
+      screen.getByRole("textbox", { name: /Nome do Cliente/i }),
+      "Cliente Email Invalido",
+    );
+    await user.type(
+      screen.getByRole("textbox", { name: /Email do Cliente/i }),
+      "nao-e-um-email",
+    );
+    await user.click(screen.getByRole("button", { name: /2. Itens e Valores/i }));
+    await user.type(
+      screen.getByPlaceholderText("Ex: Desenvolvimento de Site"),
+      "Servico",
+    );
+    await user.click(screen.getByRole("button", { name: /Salvar Orçamento/i }));
+    await screen.findByText("Revise os campos destacados antes de salvar.");
+    await user.click(
+      screen.getByRole("button", { name: /1. Dados da Proposta e Cliente/i }),
+    );
+
+    expect(
+      await screen.findByText("Informe um email válido."),
+    ).toBeInTheDocument();
+    expect(localStorage.getItem("@OrcaRapido:budgets")).toBeNull();
+  });
+
+  it("toggles document options and changes unit/validity inputs", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <BudgetPage />
+      </MemoryRouter>,
+    );
+
+    await user.type(
+      screen.getByRole("textbox", { name: /Nome do Cliente/i }),
+      "Cliente Opções",
+    );
+    await user.click(screen.getByRole("button", { name: /2. Itens e Valores/i }));
+    await user.type(
+      screen.getByPlaceholderText("Ex: Desenvolvimento de Site"),
+      "Servico",
+    );
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: /Unidade/i }),
+      "HR",
+    );
+
+    await user.click(screen.getByRole("button", { name: /3. Configurações do Documento/i }));
+    await user.click(screen.getByRole("checkbox", { name: /Exibir Logo da Empresa/i }));
+    // "Validade do Orçamento" já vem ativa por padrão no estado inicial.
+    const validityInput = screen.getByRole("spinbutton", {
+      name: /Válido por \(dias\)/i,
+    });
+    await user.clear(validityInput);
+    await user.type(validityInput, "15");
+
+    await user.click(screen.getByRole("button", { name: /Salvar Orçamento/i }));
+
+    await waitFor(() =>
+      expect(localStorage.getItem("@OrcaRapido:budgets")).toBeTruthy(),
+    );
+    const budgets = JSON.parse(localStorage.getItem("@OrcaRapido:budgets") || "[]");
+    expect(budgets[0].items[0].unidade).toBe("HR");
+    expect(budgets[0].validUntil).toBeDefined();
+  });
+
   it("updates the saved draft instead of creating duplicates on repeated saves", async () => {
     const user = userEvent.setup();
     render(

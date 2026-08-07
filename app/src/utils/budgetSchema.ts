@@ -25,7 +25,6 @@ export const budgetItemSchema = z.object({
     0,
     "Valor não pode ser negativo.",
   ),
-  moeda: z.enum(["BRL", "USD", "EUR"]).default("BRL"),
 });
 
 export const budgetSchema = z.object({
@@ -62,7 +61,6 @@ export const budgetSchema = z.object({
       quantidade: item.quantidade,
       unidade: item.unidade,
       valorUnitario: item.valorUnitario,
-      moeda: item.moeda,
     })),
   );
 

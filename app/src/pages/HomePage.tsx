@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { BudgetPreview } from "../components/BudgetPreview";
 import { Button } from "../components/Button";
+import { ConfirmationDialog } from "../components/ConfirmationDialog";
 import { EmptyState } from "../components/EmptyState";
 import { useBudget } from "../hooks/useBudget";
 import { useProfile } from "../hooks/useProfile";
@@ -316,10 +317,7 @@ export const HomePage = () => {
                           >
                             {item.quantidade} {item.unidade} -{" "}
                             {item.descricao || "Item sem descrição"} (
-                            {formatCurrency(
-                              item.quantidade * item.valorUnitario,
-                              item.moeda,
-                            )}
+                            {formatCurrency(item.quantidade * item.valorUnitario)}
                             )
                           </span>
                         ))}
@@ -405,41 +403,3 @@ export const HomePage = () => {
     </>
   );
 };
-
-function ConfirmationDialog({
-  title,
-  description,
-  onCancel,
-  onConfirm,
-}: {
-  title: string;
-  description: string;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirmation-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4"
-    >
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
-        <h2
-          id="confirmation-title"
-          className="text-xl font-semibold text-white"
-        >
-          {title}
-        </h2>
-        <p className="mt-3 text-sm leading-6 text-slate-300">{description}</p>
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="ghost" onClick={onCancel}>
-            Cancelar
-          </Button>
-          <Button onClick={onConfirm}>Confirmar</Button>
-        </div>
-      </div>
-    </div>,
-    document.body,
-  );
-}

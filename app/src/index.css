@@ -147,8 +147,15 @@ textarea {
     overflow: visible !important;
   }
 
-  #root {
-    display: none !important;
+  /* Esconder via `display: none` no #root (em vez de `visibility`) é a causa
+     mais provável de PDFs saindo em branco: alguns motores de impressão
+     computam o layout de impressão antes do recálculo de estilo do
+     display:none terminar de aplicar, principalmente pra conteúdo inserido
+     via portal do React bem no instante do print(). O padrão
+     "visibility: hidden em tudo, visible só na área de impressão" é o mais
+     confiável entre navegadores para "imprimir só este elemento". */
+  body * {
+    visibility: hidden !important;
   }
 
   .print-document-area,

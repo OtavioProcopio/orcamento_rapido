@@ -43,9 +43,6 @@ const readId = (value: unknown): string =>
 const idbError = (error: unknown): Error =>
   error instanceof Error ? error : new Error("IndexedDB operation failed");
 
-const readCurrency = (value: unknown): BudgetItem["moeda"] =>
-  value === "USD" || value === "EUR" || value === "BRL" ? value : "BRL";
-
 const readStatus = (value: unknown): BudgetStatus =>
   value === "sent" ||
   value === "approved" ||
@@ -64,7 +61,6 @@ export const normalizeBudgetItem = (itemRaw: unknown): BudgetItem | null => {
   const quantidade = readNumber(itemRaw.quantidade ?? itemRaw.quantity, 0);
   const unidade = readString(itemRaw.unidade, "UN");
   const valorUnitario = readNumber(itemRaw.valorUnitario ?? itemRaw.price, 0);
-  const moeda = readCurrency(itemRaw.moeda);
 
   return {
     id: readId(itemRaw.id),
@@ -72,7 +68,6 @@ export const normalizeBudgetItem = (itemRaw: unknown): BudgetItem | null => {
     quantidade,
     unidade,
     valorUnitario,
-    moeda,
   };
 };
 

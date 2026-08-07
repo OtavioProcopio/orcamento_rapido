@@ -39,9 +39,17 @@ export const parseBudgetBackup = (content: string): Budget[] => {
   return budgets;
 };
 
+const FORMULA_TRIGGER_PATTERN = /^[=+\-@\t\r]/;
+
 const escapeCsv = (value: string | number | undefined): string => {
   const normalized = String(value ?? "");
-  return `"${normalized.replace(/"/g, '""')}"`;
+  // Neutraliza CSV injection: célula iniciando com =, +, -, @ (ou tab/CR) é
+  // interpretada como fórmula por Excel/Sheets ao abrir o arquivo exportado.
+  // Prefixamos com apóstrofo, que força leitura como texto literal.
+  const safe = FORMULA_TRIGGER_PATTERN.test(normalized)
+    ? `'${normalized}`
+    : normalized;
+  return `"${safe.replace(/"/g, '""')}"`;
 };
 
 export const createBudgetCsv = (budgets: Budget[]): string => {

@@ -138,7 +138,36 @@ describe("DataManagementPage", () => {
     expect(downloadBlobMock).not.toHaveBeenCalled();
   });
 
-  it("shows an error alert when export fails", async () => {
+  it("alerts when there is no data to export as CSV", async () => {
+    storageAdapterMock.getBudgets.mockResolvedValueOnce([]);
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <DataManagementPage />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Exportar CSV" }));
+
+    expect(alertMock).toHaveBeenCalledWith("Não há orçamentos para exportar.");
+    expect(downloadBlobMock).not.toHaveBeenCalled();
+  });
+
+  it("shows an error alert when JSON export fails", async () => {
+    storageAdapterMock.getBudgets.mockRejectedValueOnce(new Error("read failed"));
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <DataManagementPage />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Backup JSON" }));
+
+    expect(alertMock).toHaveBeenCalledWith("Erro ao exportar dados.");
+  });
+
+  it("shows an error alert when CSV export fails", async () => {
     storageAdapterMock.getBudgets.mockRejectedValueOnce(new Error("read failed"));
     const user = userEvent.setup();
     render(
@@ -152,7 +181,7 @@ describe("DataManagementPage", () => {
     expect(alertMock).toHaveBeenCalledWith("Erro ao exportar dados.");
   });
 
-  it("imports valid backup files", async () => {
+  it("asks for confirmation before importing and replaces data on confirm", async () => {
     const user = userEvent.setup();
     const { container } = render(
       <MemoryRouter>
@@ -173,12 +202,51 @@ describe("DataManagementPage", () => {
     file.__content = '{"budgets":[{"id":"imported-budget"}]}';
     await user.upload(input, file);
 
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText(/backup\.json/)).toBeInTheDocument();
+    expect(storageAdapterMock.saveBudgets.mock.calls.length).toBe(0);
+
+    await user.click(
+      screen.getByRole("button", { name: "Importar e substituir" }),
+    );
+
     await waitFor(() => {
       expect(storageAdapterMock.saveBudgets.mock.calls.length).toBeGreaterThan(0);
     });
     expect(
       await screen.findByText(/Importação realizada com sucesso!/),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("does not import when the confirmation is cancelled", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <MemoryRouter>
+        <DataManagementPage />
+      </MemoryRouter>,
+    );
+
+    const input = container.querySelector("input[type='file']") as HTMLInputElement | null;
+    if (!input) {
+      throw new Error("Import input not found");
+    }
+
+    const file = new File(
+      ['{"budgets":[{"id":"imported-budget"}]}'],
+      "backup.json",
+      { type: "application/json" },
+    ) as File & { __content?: string };
+    file.__content = '{"budgets":[{"id":"imported-budget"}]}';
+    await user.upload(input, file);
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(storageAdapterMock.saveBudgets.mock.calls.length).toBe(0);
+    expect(input.value).toBe("");
   });
 
   it("shows import error for invalid files", async () => {
@@ -202,6 +270,10 @@ describe("DataManagementPage", () => {
     }) as File & { __content?: string };
     file.__content = "invalid";
     await user.upload(input, file);
+
+    await user.click(
+      screen.getByRole("button", { name: "Importar e substituir" }),
+    );
 
     expect(
       await screen.findByText(/Erro ao ler o arquivo/),

@@ -18,10 +18,10 @@ module.exports = {
   testPathIgnorePatterns: ["/node_modules/", "/dist/"],
   coverageThreshold: {
     global: {
-      branches: 68,
-      functions: 70,
-      lines: 75,
-      statements: 75,
+      branches: 90,
+      functions: 90,
+      lines: 90,
+      statements: 90,
     },
   },
 };

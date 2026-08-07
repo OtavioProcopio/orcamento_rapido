@@ -1,50 +1,47 @@
 # Relatório do Sistema Orça Rápido
 
-Data da revisão: 2026-05-07
+Data da revisão: 2026-08-06
 
 ## Resumo executivo
 
-O Orça Rápido evoluiu de MVP local/demo para um sistema focado em MEIs, consolidando-se como uma ferramenta 100% frontend. Ele roda puramente local (IndexedDB) e não exige mensalidade nem login, priorizando agilidade na criação de propostas com aparência profissional.
+O Orça Rápido é uma ferramenta 100% frontend para MEIs e autônomos criarem orçamentos profissionais. Roda puramente local (IndexedDB, com fallback e migração automática de `localStorage`), não exige mensalidade nem login.
 
-Esta rodada de atualizações resolveu um dos maiores riscos locais: o backup de dados. Criamos uma nova rota dedicada para gestão (`/data`) a fim de desafogar o Dashboard (HomePage), garantindo assim um layout mais limpo no histórico de propostas e oferecendo ao microempreendedor uma maneira explícita de guardar seu trabalho na nuvem ou pen drive, mitigando a perda de um histórico armazenado estritamente no browser.
+Esta rodada foi uma auditoria completa seguida de uma passada de hardening: mapeamento de falhas, correção dos bugs críticos e funcionais encontrados, atualização de dependências vulneráveis, remoção de código morto, alinhamento a boas práticas de LGPD e elevação da cobertura de testes automatizados para acima de 90% (statements, branches, functions e lines), incluindo expansão da suíte E2E (Cypress) de 1 para 4 specs.
 
-Minha avaliação atual é: **Pronto para piloto escalável para MEIs (com aviso de uso de cache).** O foco da aplicação é entregar orçamentos sem ruído ou cadastro forçado.
+Minha avaliação atual é: **Pronto para piloto escalável para MEIs.** O pipeline de qualidade (`make validate` + `make e2e`) está 100% verde.
+
+## O que foi encontrado e corrigido nesta rodada
+
+1. **Suíte E2E estava quebrada.** O teste procurava um texto de CTA (`"Entrar no painel"`) que não existia mais na Landing após uma reescrita de copy anterior — e como `make validate` (o gate do CI) não roda E2E, isso não era detectado automaticamente. Corrigido com um `data-testid` estável no CTA, resiliente a mudanças futuras de copywriting.
+2. **Bug de fuso horário em `formatDate`.** Datas no formato `YYYY-MM-DD` sofriam deslocamento de um dia em qualquer fuso atrás de UTC — ou seja, todo o público-alvo brasileiro. O bug ficava mascarado porque CI e devcontainer rodam em UTC por padrão. Corrigido tratando strings "date-only" sem conversão de fuso, e os testes agora rodam fixados em `America/Sao_Paulo` para não depender do fuso da máquina que executa.
+3. **Bug crítico de digitação em campos numéricos**, descoberto rodando o E2E de ponta a ponta (não em revisão estática): limpar e redigitar quantidade/valor unitário/desconto/dias de validade embaralhava os dígitos (`2` e `50` viravam `20` e `500`), porque o campo controlado colapsava `""` para `0` a cada tecla e o React perdia a posição do cursor. Corrigido mantendo um estado intermediário válido enquanto o campo está vazio.
+4. **Subtotal/total inconsistentes com moeda mista.** O tipo `BudgetItem` tinha um campo `moeda` (BRL/USD/EUR) nunca exposto na UI — ou seja, uma inconsistência latente sem seletor para acioná-la. Removido: o app é BRL-only, coerente com o restante do produto (PIX, CPF/CNPJ, `pt-BR` fixo).
+5. **Importação de backup sem confirmação.** Selecionar um arquivo `.json` em `/data` substituía todo o histórico local imediatamente. Agora exige confirmação explícita, reaproveitando o mesmo modal acessível já usado para excluir/resetar.
+6. **Dependências vulneráveis.** `npm audit fix` resolveu 8 de 14 vulnerabilidades (incluindo as que afetavam o bundle de produção). As 3 restantes são de dependências apenas de teste (Cypress) ou uma CVE de modo RSC do React Router que este app não usa.
+7. **CSV injection na exportação.** Células que começam com `=`, `+`, `-` ou `@` (ex.: um nome de cliente `=cmd|calc!A1`) agora são neutralizadas antes de ir para o CSV exportado.
+8. **Código morto removido**: `InputField`, `TextAreaField`, `Card` e `MonetizationBanner` nunca eram importados em nenhuma página, mas tinham testes — inflando a métrica de cobertura sem entregar valor real.
+9. **LGPD**: a Landing não linkava política de privacidade/termos antes do cadastro (só aparecia depois, no Dashboard) — corrigido com um rodapé. As fontes (Manrope/Sora) vinham do CDN do Google a cada carregamento de página, contradizendo o discurso de "seus dados ficam só no seu navegador" — agora são auto-hospedadas (`public/fonts/`).
 
 ## Estado atual confirmado
 
-Comandos executados nesta revisão:
-
-- Testes globais e cobertura continuam dentro dos limites esperados (acima de 70% globais).
-- Artefatos mortos (`app/coverage/`, `docs/referencia.md`, código in-line na `HomePage`) devidamente removidos.
+- `make validate` (lint + testes + cobertura + build): **aprovado**.
+- `make e2e` (4 specs, 12 verificações): **aprovado**.
+- Cobertura: 98,1% statements / 90,29% branches / 95,73% functions / 99,15% lines — piso de 90% travado em `jest.config.cjs` e no `Makefile`.
 
 ## Como o sistema funciona hoje
 
-- **`/`**: Landing page otimizada com novo foco de vendas para o MEI (criar, exportar e vender rápido sem mensalidades).
-- **`/dashboard`**: Histórico local agora livre da poluição de botões inline limitados, focando em busca, filtragem e geração de PDF.
-- **`/builder`**: Construtor e gerador com preview, aplicando regras de descontos, validades, formas de pagamento via formulários controlados.
-- **`/data`**: **Nova página** centralizando ações críticas de controle: Exportar Backup JSON, exportar CSV para planilhas e importar backup no browser.
-- **`/profile`**: Configuração dos dados de contato, PIX, logotipo para estampar a proposta.
-- Persistência Principal garante estabilidade com IndexedDB por meio do `storageAdapter`.
-- Impressão segue usando `window.print()`.
+- **`/`**: Landing page com CTA que leva a `/profile` (primeiro acesso) ou `/dashboard` (quem já tem perfil/orçamentos), com rodapé linkando as páginas legais.
+- **`/dashboard`**: Histórico local com busca, filtragem, impressão, edição, duplicação e exclusão (com confirmação).
+- **`/builder`**: Construtor com preview ao vivo, aplicando regras de descontos, validades, formas de pagamento.
+- **`/data`**: Exportar Backup JSON, exportar CSV, importar backup (com confirmação antes de substituir o histórico).
+- **`/profile`**: Dados de contato, PIX, logotipo.
+- **`/privacy`, `/terms`, `/storage-notice`**: páginas legais, linkadas tanto na Landing quanto no Dashboard.
+- Persistência via IndexedDB (`storageAdapter`), com fallback e migração automática de `localStorage` legado.
+- Impressão via `window.print()`.
 
-## O que foi melhorado (Gargalos resolvidos)
+## Pendências / oportunidades para produto de massa
 
-1. **Gestão de Dados Local Refinada**: A HomePage contava com exportações inline não escaláveis (estado poluído com inputs escondidos/refs e métodos espalhados na main screen). Movido para a página `/data`.
-2. **Nova Rota de Exportação/Importação (`DataManagementPage`)**: Com a nova tela limpa e de fácil uso, o MEI não perde o seu histórico ao limpar cache – ele tem uma responsabilidade ativa de baixar o arquivo JSON.
-3. **Limpeza Arquitetural**: Deleção massiva de ruídos: pasta `/app/coverage` e `docs/referencia.md` antiga.
-4. **Otimização do Onboarding do MEI**: A tela de chegada (`LandingPage`) ganhou copy-writing mais voltado a negócios e vendas rápidas, para engajar perfis sem muito conhecimento técnico.
-
-## Pendências atuais / Faltantes para Produto de Massa
-
-1. **Compartilhamento Direto:** WhatsApp/Email para enviar os detalhes básicos enquanto manda o PDF por anexo.
-2. **Validação Completa (CPF/CNPJ):** Máscaras e logs de negócio rígidos não implementados em algumas frentes do App (somente string vazia bloqueada).
-3. **Prevenção de Perdas de Dados (Unsaved changes):** Prompt local de _"Tem certeza que deseja sair?"_ durante uma navegação dentro do `/builder` ainda falta.
-4. **Status Real de Conversão:** Transformar status passivos em Kanban geraria um ótimo produto de pipeline de vendas no futuro.
-5. **Integração E2E**: Testes limitados ao sandboxing atual de ports.
-
-## Prioridade recomendada
-
-### P0 - Antes do GTM / Open Launch
-
-1. Adicionar o "BeforeUnload" ou validação `Leave Route` para o Builder, garantindo que o usuário seja alertado ao fechar navegador com rascunho de orçamento longo não salvo.
-2. Criar política de privacidade, termo de uso e consentimento explícito.
+1. **Compartilhamento direto**: WhatsApp/Email para enviar o orçamento ou o PDF diretamente pelo app.
+2. **Status como pipeline de vendas**: transformar os status passivos (rascunho/enviado/aprovado/...) em um Kanban simples.
+3. **Infraestrutura de monetização**: hoje não existe backend, auth ou gateway de pagamento — nenhuma pré-condição técnica para vender um plano "Pro" com mensalidade. Antes de lançar cobrança, decidir entre (a) licença local simples desbloqueando features client-side, ou (b) backend mínimo com autenticação leve + gateway de pagamento, o que também muda a promessa de privacidade "tudo fica no seu navegador" para quem virar assinante.
+4. **`docs/relatorio-sistema.md`** (este arquivo) deve ser atualizado a cada rodada relevante de mudanças para não ficar defasado em relação ao código — nesta auditoria encontramos pendências aqui registradas como abertas que já estavam implementadas no código havia tempo.

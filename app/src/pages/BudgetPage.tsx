@@ -20,6 +20,18 @@ const formatCurrency = (value: number, currency: string = "BRL") => {
   return value.toLocaleString("pt-BR", { style: "currency", currency });
 };
 
+// Campos numéricos controlados: coagir "" para 0 a cada tecla força o React a
+// re-renderizar o input com valor "0" no meio da digitação, o que faz o
+// cursor pular e embaralha os dígitos seguintes (ex.: digitar "50" vira
+// "500"). Mantemos NaN como estado intermediário válido enquanto o campo
+// está vazio, e só exibimos "" nesse caso — o schema de validação já rejeita
+// valores não finitos no submit.
+const parseNumericInput = (value: string): number =>
+  value === "" ? NaN : Number(value);
+
+const displayNumericValue = (value: number): number | string =>
+  Number.isFinite(value) ? value : "";
+
 function AccordionItem({
   title,
   isOpen,
@@ -114,7 +126,6 @@ export function BudgetPage() {
       quantidade: 1,
       unidade: "UN",
       valorUnitario: 0,
-      moeda: "BRL",
     },
   ]);
 
@@ -144,13 +155,17 @@ export function BudgetPage() {
 
   const subtotal = useMemo(
     () =>
-      items.reduce(
-        (acc, item) => acc + item.quantidade * item.valorUnitario,
-        0,
-      ),
+      items.reduce((acc, item) => {
+        const lineTotal = item.quantidade * item.valorUnitario;
+        return acc + (Number.isFinite(lineTotal) ? lineTotal : 0);
+      }, 0),
     [items],
   );
-  const total = subtotal - (config.desconto.ativo ? config.desconto.valor : 0);
+  const appliedDiscount =
+    config.desconto.ativo && Number.isFinite(config.desconto.valor)
+      ? config.desconto.valor
+      : 0;
+  const total = subtotal - appliedDiscount;
   const suggestedProposalNumber = useMemo(
     () =>
       budgets.reduce(
@@ -272,7 +287,6 @@ export function BudgetPage() {
         quantidade: 1,
         unidade: "UN",
         valorUnitario: 0,
-        moeda: "BRL",
       },
     ]);
     setOpenAccordion("items");
@@ -721,12 +735,12 @@ export function BudgetPage() {
                           name={`items.${index}.quantidade`}
                           type="number"
                           min="1"
-                          value={item.quantidade}
+                          value={displayNumericValue(item.quantidade)}
                           onChange={(e) =>
                             handleUpdateItem(
                               item.id,
                               "quantidade",
-                              Number(e.target.value),
+                              parseNumericInput(e.target.value),
                             )
                           }
                           className={`rounded-xl border bg-slate-950 px-3 py-2.5 text-slate-100 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 ${
@@ -773,12 +787,12 @@ export function BudgetPage() {
                           type="number"
                           min="0"
                           step="0.01"
-                          value={item.valorUnitario}
+                          value={displayNumericValue(item.valorUnitario)}
                           onChange={(e) =>
                             handleUpdateItem(
                               item.id,
                               "valorUnitario",
-                              Number(e.target.value),
+                              parseNumericInput(e.target.value),
                             )
                           }
                           className={`rounded-xl border bg-slate-950 px-3 py-2.5 text-slate-100 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 ${
@@ -801,8 +815,9 @@ export function BudgetPage() {
                       </span>
                       <span className="font-bold text-slate-100">
                         {formatCurrency(
-                          item.quantidade * item.valorUnitario,
-                          item.moeda,
+                          Number.isFinite(item.quantidade * item.valorUnitario)
+                            ? item.quantidade * item.valorUnitario
+                            : 0,
                         )}
                       </span>
                     </div>
@@ -853,13 +868,13 @@ export function BudgetPage() {
                       <input
                         type="number"
                         min="1"
-                        value={config.validade.dias}
+                        value={displayNumericValue(config.validade.dias)}
                         onChange={(e) =>
                           handleConfigChange({
                             ...config,
                             validade: {
                               ...config.validade,
-                              dias: Number(e.target.value),
+                              dias: parseNumericInput(e.target.value),
                             },
                           })
                         }
@@ -900,13 +915,13 @@ export function BudgetPage() {
                         type="number"
                         min="0"
                         step="0.01"
-                        value={config.desconto.valor}
+                        value={displayNumericValue(config.desconto.valor)}
                         onChange={(e) =>
                           handleConfigChange({
                             ...config,
                             desconto: {
                               ...config.desconto,
-                              valor: Number(e.target.value),
+                              valor: parseNumericInput(e.target.value),
                             },
                           })
                         }
@@ -1029,11 +1044,15 @@ export function BudgetPage() {
               profile={currentProfile}
               proposalNumber={proposalData.number}
               createdAt={mockDate}
-              validityDays={config.validade.ativo ? config.validade.dias : undefined}
+              validityDays={
+                config.validade.ativo && Number.isFinite(config.validade.dias)
+                  ? config.validade.dias
+                  : undefined
+              }
               client={clientData}
               items={items}
               subtotal={subtotal}
-              discount={config.desconto.ativo ? config.desconto.valor : 0}
+              discount={appliedDiscount}
               total={total > 0 ? total : 0}
               showLogo={config.exibirLogo}
               showSignature={config.assinatura}

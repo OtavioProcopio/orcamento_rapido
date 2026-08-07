@@ -10,10 +10,10 @@ COLOR_BLUE := \033[1;34m
 COLOR_GREEN := \033[1;32m
 COLOR_RED := \033[1;31m
 COLOR_YELLOW := \033[1;33m
-MIN_COVERAGE_BRANCHES ?= 68
-MIN_COVERAGE_FUNCTIONS ?= 70
-MIN_COVERAGE_LINES ?= 75
-MIN_COVERAGE_STATEMENTS ?= 75
+MIN_COVERAGE_BRANCHES ?= 90
+MIN_COVERAGE_FUNCTIONS ?= 90
+MIN_COVERAGE_LINES ?= 90
+MIN_COVERAGE_STATEMENTS ?= 90
 JEST_TEST_FLAGS := --runInBand --silent --noStackTrace --colors
 JEST_RESULTS_FILE := $(APP_DIR)/coverage/jest-results.json
 JEST_COVERAGE_FLAGS := $(JEST_TEST_FLAGS) --coverage --coverageReporters=text-summary --coverageReporters=json-summary --json --outputFile=coverage/jest-results.json

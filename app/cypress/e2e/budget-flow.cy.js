@@ -1,23 +1,10 @@
 describe("Orca Rapido flow", () => {
-  beforeEach(() => {
-    cy.clearLocalStorage();
-    cy.then(() => {
-      return new Cypress.Promise((resolve, reject) => {
-        const request = indexedDB.deleteDatabase("orca-rapido");
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-        request.onblocked = () => resolve();
-      });
-    });
-  });
-
   it("validates profile, budget builder, history print and deletion", () => {
     cy.visit("/");
 
-    cy.contains("Entrar no painel").click();
-    cy.contains("Meu Painel").should("be.visible");
-
-    cy.contains("Configurações / Perfil").click();
+    // Sem perfil/orçamentos salvos, o CTA da Landing leva direto para o
+    // cadastro do perfil (ver ctaTarget em LandingPage.tsx).
+    cy.get("[data-testid='landing-cta']").click();
     cy.contains("Dados usados nos orçamentos").should("be.visible");
     cy.contains("Nome da Empresa").find("input").type("Empresa Teste");
     cy.contains("Nome do Profissional").find("input").type("Profissional Teste");
@@ -25,6 +12,7 @@ describe("Orca Rapido flow", () => {
     cy.contains("Chave Pix").find("input").type("pix@teste.com");
     cy.contains("Salvar Perfil").click();
     cy.contains("Salvo com sucesso.").should("be.visible");
+    cy.screenshot("01-perfil-salvo");
 
     cy.contains("Voltar").click();
     cy.contains("Novo Orçamento").click();
@@ -37,10 +25,12 @@ describe("Orca Rapido flow", () => {
     cy.get("input[name='clientAddress']").type("Rua Teste, 100");
     cy.get("input[name='clientPhone']").type("11988887777");
 
+    cy.contains("2. Itens e Valores").click();
     cy.get("input[name='items.0.descricao']").type("Servico");
     cy.get("input[name='items.0.quantidade']").clear().type("2");
     cy.get("input[name='items.0.valorUnitario']").clear().type("50");
     cy.contains("TOTAL GERAL").parent().should("contain", "100,00");
+    cy.screenshot("02-orcamento-preenchido");
 
     cy.contains("Configurações do Documento").click();
     cy.contains("Condições de Pagamento").click();
@@ -64,6 +54,7 @@ describe("Orca Rapido flow", () => {
     cy.contains("WhatsApp: (11) 98888-7777").should("be.visible");
     cy.contains("Servico").should("be.visible");
     cy.contains("PIX na entrega").should("be.visible");
+    cy.screenshot("03-dashboard-com-orcamento");
 
     cy.window().then((win) => {
       cy.stub(win, "print").as("print");
@@ -75,5 +66,6 @@ describe("Orca Rapido flow", () => {
     cy.contains("Excluir").click();
     cy.contains("Confirmar").click();
     cy.contains("Nenhum orçamento ainda").should("be.visible");
+    cy.screenshot("04-historico-vazio-apos-exclusao");
   });
 });

@@ -9,7 +9,6 @@ const validBudgetInput = {
       quantidade: 2,
       unidade: "UN",
       valorUnitario: 50,
-      moeda: "BRL" as const,
     },
   ],
   validityDays: 7,
@@ -43,6 +42,24 @@ describe("budgetSchema", () => {
   it("rejects discounts above subtotal", () => {
     const result = budgetSchema.safeParse({
       ...validBudgetInput,
+      discount: 500,
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe(
+        "Desconto não pode ser maior que o subtotal.",
+      );
+    }
+  });
+
+  it("still computes the subtotal for discount validation when an item has no id", () => {
+    const { id: _unusedId, ...itemWithoutId } = validBudgetInput.items[0];
+    void _unusedId;
+
+    const result = budgetSchema.safeParse({
+      ...validBudgetInput,
+      items: [itemWithoutId],
       discount: 500,
     });
 

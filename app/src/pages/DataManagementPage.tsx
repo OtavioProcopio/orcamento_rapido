@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "../components/Button";
+import { ConfirmationDialog } from "../components/ConfirmationDialog";
 import {
   createBudgetBackup,
   parseBudgetBackup,
@@ -15,6 +16,10 @@ export function DataManagementPage() {
     message: string;
     type: "success" | "error";
   } | null>(null);
+  const [pendingImportFile, setPendingImportFile] = useState<File | null>(
+    null,
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExportJson = async () => {
     try {
@@ -46,8 +51,26 @@ export function DataManagementPage() {
     }
   };
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const resetFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    if (!file) return;
+    setImportStatus(null);
+    setPendingImportFile(file);
+  };
+
+  const handleCancelImport = () => {
+    setPendingImportFile(null);
+    resetFileInput();
+  };
+
+  const handleConfirmImport = () => {
+    const file = pendingImportFile;
     if (!file) return;
 
     const reader = new FileReader();
@@ -73,6 +96,9 @@ export function DataManagementPage() {
       }
     };
     reader.readAsText(file);
+
+    setPendingImportFile(null);
+    resetFileInput();
   };
 
   return (
@@ -126,9 +152,10 @@ export function DataManagementPage() {
           </p>
           <div className="flex flex-col gap-4">
             <input
+              ref={fileInputRef}
               type="file"
               accept=".json"
-              onChange={handleImport}
+              onChange={handleFileSelected}
               className="block w-full text-sm text-slate-300 file:mr-4 file:rounded-full file:border-0 file:bg-blue-500/10 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-300 hover:file:bg-blue-500/20"
             />
             {importStatus && (
@@ -141,6 +168,16 @@ export function DataManagementPage() {
           </div>
         </section>
       </div>
+
+      {pendingImportFile ? (
+        <ConfirmationDialog
+          title="Substituir histórico local"
+          description={`Isso vai substituir TODOS os orçamentos salvos neste navegador pelo conteúdo de "${pendingImportFile.name}". Essa ação não pode ser desfeita. Deseja continuar?`}
+          confirmLabel="Importar e substituir"
+          onCancel={handleCancelImport}
+          onConfirm={handleConfirmImport}
+        />
+      ) : null}
     </div>
   );
 }

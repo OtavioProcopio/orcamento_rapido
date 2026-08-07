@@ -22,7 +22,7 @@ Sistema para emissão e gestão de orçamentos profissionais com foco em MEIs e 
 
 - Estrutura guiada por princípios de Clean Architecture e SOLID.
 - Validação automatizada via `Makefile`.
-- Cobertura de testes acima de `85%`.
+- Cobertura de testes acima de `90%` (statements, branches, functions e lines).
 - Pipeline local consolidado com lint, testes, cobertura e build.
 - Ambiente padronizado com Dev Container.
 

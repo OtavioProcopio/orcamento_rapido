@@ -17,7 +17,6 @@ describe("calculate utils", () => {
         quantidade: 2,
         unidade: "UN",
         valorUnitario: 10,
-        moeda: "BRL" as const,
       },
       {
         id: "2",
@@ -25,7 +24,6 @@ describe("calculate utils", () => {
         quantidade: 1,
         unidade: "UN",
         valorUnitario: 5,
-        moeda: "BRL" as const,
       },
     ];
     expect(calculateBudgetSubtotal(items)).toBe(25);
@@ -39,9 +37,34 @@ describe("calculate utils", () => {
         quantidade: 2,
         unidade: "UN",
         valorUnitario: 10,
-        moeda: "BRL" as const,
       },
     ];
     expect(calculateBudgetTotal(items, 3)).toBe(17);
+  });
+
+  it("defaults discount to zero when omitted", () => {
+    const items = [
+      {
+        id: "1",
+        descricao: "A",
+        quantidade: 2,
+        unidade: "UN",
+        valorUnitario: 10,
+      },
+    ];
+    expect(calculateBudgetTotal(items)).toBe(20);
+  });
+
+  it("clamps total to zero when discount exceeds subtotal", () => {
+    const items = [
+      {
+        id: "1",
+        descricao: "A",
+        quantidade: 1,
+        unidade: "UN",
+        valorUnitario: 10,
+      },
+    ];
+    expect(calculateBudgetTotal(items, 999)).toBe(0);
   });
 });

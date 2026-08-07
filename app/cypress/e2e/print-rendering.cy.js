@@ -53,10 +53,20 @@ describe("Print rendering", () => {
       expect(styles.visibility).to.eq("visible");
     });
 
-    // O resto do app (dashboard por trás) não pode aparecer na impressão.
+    // O resto do app (dashboard por trás) não pode aparecer na impressão,
+    // e precisa estar fora do fluxo do documento (display: none) — só
+    // visibility:hidden ainda ocuparia espaço (min-height: 100vh do #root)
+    // e empurraria o conteúdo real pra uma segunda página em branco.
     cy.get("#root").then(($el) => {
       const styles = window.getComputedStyle($el[0]);
-      expect(styles.visibility).to.eq("hidden");
+      expect(styles.display).to.eq("none");
+    });
+
+    // Regressão de "página fantasma": se algo além da área de impressão
+    // ainda ocupar espaço no fluxo, a altura total do documento impresso
+    // passa muito de uma página A4 (~297mm ≈ 1122px a 96dpi).
+    cy.document().then((doc) => {
+      expect(doc.body.scrollHeight).to.be.lessThan(1400);
     });
   });
 });

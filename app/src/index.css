@@ -147,15 +147,20 @@ textarea {
     overflow: visible !important;
   }
 
-  /* Esconder via `display: none` no #root (em vez de `visibility`) é a causa
-     mais provável de PDFs saindo em branco: alguns motores de impressão
-     computam o layout de impressão antes do recálculo de estilo do
-     display:none terminar de aplicar, principalmente pra conteúdo inserido
-     via portal do React bem no instante do print(). O padrão
-     "visibility: hidden em tudo, visible só na área de impressão" é o mais
-     confiável entre navegadores para "imprimir só este elemento". */
+  /* visibility:hidden em tudo (em vez de display:none) é o padrão mais
+     confiável entre navegadores pra "imprimir só este elemento" — mas
+     visibility NÃO remove a caixa do fluxo do documento. Sozinho, o #root
+     (que tem min-height: 100vh) continua ocupando espaço mesmo invisível,
+     empurrando o conteúdo real pra uma segunda página em branco. Por isso
+     o #root também leva display:none: ele é um elemento fixo e sempre
+     presente (não sofre do problema de timing de conteúdo recém-inserido
+     via portal), então tirá-lo do fluxo por completo é seguro. */
   body * {
     visibility: hidden !important;
+  }
+
+  #root {
+    display: none !important;
   }
 
   .print-document-area,
@@ -164,11 +169,11 @@ textarea {
   }
 
   .print-document-area {
-    left: 0 !important;
-    top: 0 !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
     width: 210mm !important;
     min-height: 297mm !important;
-    position: absolute !important;
     overflow: visible !important;
   }
 

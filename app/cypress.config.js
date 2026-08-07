@@ -1,6 +1,8 @@
 import { defineConfig } from "cypress";
 
 export default defineConfig({
+  video: true,
+  screenshotOnRunFailure: true,
   e2e: {
     baseUrl: process.env.CYPRESS_BASE_URL || "http://localhost:5173",
     supportFile: "cypress/support/e2e.js",

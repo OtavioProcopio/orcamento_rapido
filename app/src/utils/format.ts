@@ -10,8 +10,16 @@ export const formatCurrency = (
   }).format(value);
 };
 
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
 export const formatDate = (isoDate: string): string => {
-  const date = new Date(isoDate);
+  // Strings "date-only" (sem horário) são tratadas como meio-dia local para
+  // não sofrer deslocamento de fuso: "2024-01-01" não pode virar 31/12/2023
+  // só porque o navegador está em um fuso atrás de UTC (caso de todo o Brasil).
+  const date = DATE_ONLY_PATTERN.test(isoDate)
+    ? new Date(`${isoDate}T12:00:00`)
+    : new Date(isoDate);
+
   if (Number.isNaN(date.getTime())) {
     return isoDate;
   }

@@ -41,7 +41,7 @@ Minha avaliação atual é: **Pronto para piloto escalável para MEIs.** O pipel
 
 ## Pendências / oportunidades para produto de massa
 
-1. **Compartilhamento direto**: WhatsApp/Email para enviar o orçamento ou o PDF diretamente pelo app.
+1. ~~Compartilhamento direto via WhatsApp~~ — **implementado**: botão "Compartilhar via WhatsApp" em cada orçamento do Dashboard, abre o `wa.me` com mensagem pronta (número do orçamento, empresa, total, validade e forma de pagamento) mirando o telefone do cliente quando cadastrado. Como o app não tem backend pra hospedar link nem anexar o PDF programaticamente, o envio do PDF em si continua pelo fluxo de impressão já existente. **Compartilhamento por Email** ainda não foi feito.
 2. **Status como pipeline de vendas**: transformar os status passivos (rascunho/enviado/aprovado/...) em um Kanban simples.
 3. **Infraestrutura de monetização**: hoje não existe backend, auth ou gateway de pagamento — nenhuma pré-condição técnica para vender um plano "Pro" com mensalidade. Antes de lançar cobrança, decidir entre (a) licença local simples desbloqueando features client-side, ou (b) backend mínimo com autenticação leve + gateway de pagamento, o que também muda a promessa de privacidade "tudo fica no seu navegador" para quem virar assinante.
 4. **`docs/relatorio-sistema.md`** (este arquivo) deve ser atualizado a cada rodada relevante de mudanças para não ficar defasado em relação ao código — nesta auditoria encontramos pendências aqui registradas como abertas que já estavam implementadas no código havia tempo.

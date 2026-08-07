@@ -9,6 +9,7 @@ import { useBudget } from "../hooks/useBudget";
 import { useProfile } from "../hooks/useProfile";
 import { createBrowserPrintSession } from "../utils/browserPrintService";
 import { formatCurrency, formatDate } from "../utils/format";
+import { buildBudgetWhatsAppShareUrl } from "../utils/whatsapp";
 import type { Budget } from "../types";
 
 const calculateValidityDays = (budget: Budget) => {
@@ -102,6 +103,11 @@ export const HomePage = () => {
   const handlePrintBudget = (budgetId: string) => {
     setPrintError(null);
     setPrintBudgetId(budgetId);
+  };
+
+  const handleShareWhatsApp = (budget: Budget) => {
+    const url = buildBudgetWhatsAppShareUrl(budget, profileData.companyName);
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const handleDeleteBudget = (budgetId: string) => {
@@ -366,6 +372,12 @@ export const HomePage = () => {
                         onClick={() => handlePrintBudget(budget.id)}
                       >
                         Imprimir / Salvar PDF
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => handleShareWhatsApp(budget)}
+                      >
+                        Compartilhar via WhatsApp
                       </Button>
                       <Button
                         variant="ghost"

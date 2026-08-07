@@ -170,6 +170,35 @@ describe("HomePage", () => {
     ).toBeInTheDocument();
   });
 
+  it("opens WhatsApp with a pre-filled message targeting the client's phone", async () => {
+    budgets = [
+      makeBudget({
+        id: "share-me",
+        number: 7,
+        client: { name: "Cliente WhatsApp", phone: "(11) 98888-7777" },
+        totals: { subtotal: 100, discount: 0, total: 100 },
+      }),
+    ];
+    const openSpy = jest.spyOn(window, "open").mockImplementation(() => null);
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Compartilhar via WhatsApp" }),
+    );
+
+    expect(openSpy).toHaveBeenCalledWith(
+      expect.stringContaining("https://wa.me/5511988887777?text="),
+      "_blank",
+      "noopener,noreferrer",
+    );
+  });
+
   it("clears budgets after confirmation", async () => {
     budgets = [makeBudget()];
     const user = userEvent.setup();

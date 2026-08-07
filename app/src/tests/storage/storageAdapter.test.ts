@@ -1,3 +1,4 @@
+import { IDBFactory } from "fake-indexeddb";
 import {
   normalizeBudget,
   normalizeBudgetItem,
@@ -247,31 +248,166 @@ describe("storageAdapter", () => {
           quantidade: 2,
           valorUnitario: 20,
           unidade: "UN",
-          moeda: "BRL",
         }),
       ],
     });
   });
 
   it("normalizes budget items and rejects invalid raw values", () => {
-    expect(
-      normalizeBudgetItem({
-        id: 7,
-        descricao: "Servico",
-        quantidade: "4",
-        valorUnitario: "12.5",
-        unidade: "HR",
-        moeda: "USD",
-      }),
-    ).toMatchObject({
+    const normalizedItem = normalizeBudgetItem({
+      id: 7,
+      descricao: "Servico",
+      quantidade: "4",
+      valorUnitario: "12.5",
+      unidade: "HR",
+    });
+
+    expect(normalizedItem).toMatchObject({
       id: "7",
       quantidade: 4,
       valorUnitario: 12.5,
       unidade: "HR",
-      moeda: "USD",
     });
+    expect(normalizedItem).not.toHaveProperty("moeda");
 
     expect(normalizeBudgetItem(null)).toBeNull();
     expect(normalizeBudget(null)).toBeNull();
+  });
+});
+
+describe("storageAdapter with IndexedDB available", () => {
+  const originalIndexedDB = globalThis.indexedDB;
+  const baseBudget = {
+    status: "draft" as const,
+    items: [],
+    discount: 0,
+    modules: { showTerms: true, showSignature: true, removeAds: false },
+    totals: { subtotal: 0, discount: 0, total: 0 },
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+    // Uma IDBFactory nova por teste garante um banco em memória isolado,
+    // evitando que dados de um teste vazem para o próximo.
+    Object.defineProperty(globalThis, "indexedDB", {
+      configurable: true,
+      value: new IDBFactory(),
+    });
+  });
+
+  afterAll(() => {
+    Object.defineProperty(globalThis, "indexedDB", {
+      configurable: true,
+      value: originalIndexedDB,
+    });
+  });
+
+  it("persists profile through IndexedDB instead of the localStorage fallback", async () => {
+    const profile: MeiProfile = {
+      companyName: "Empresa IDB",
+      userName: "Usuario",
+      phone: "11999999999",
+      pixKey: "pix",
+    };
+
+    await storageAdapter.saveProfile(profile);
+
+    expect(localStorage.getItem("@OrcaRapido:mei_profile")).toBeNull();
+    await expect(storageAdapter.getProfile()).resolves.toEqual(profile);
+  });
+
+  it("runs the full budget CRUD cycle through IndexedDB", async () => {
+    const budgetA: Budget = {
+      id: "a",
+      number: 1,
+      createdAt: new Date().toISOString(),
+      client: { name: "Cliente A" },
+      ...baseBudget,
+    };
+    const budgetB: Budget = {
+      id: "b",
+      number: 2,
+      createdAt: new Date().toISOString(),
+      client: { name: "Cliente B" },
+      ...baseBudget,
+    };
+
+    await storageAdapter.addBudget(budgetA);
+    const afterAdd = await storageAdapter.addBudget(budgetB);
+    expect(afterAdd.map((budget) => budget.id)).toEqual(["b", "a"]);
+    expect(localStorage.getItem("@OrcaRapido:budgets")).toBeNull();
+
+    const afterUpdate = await storageAdapter.updateBudget("a", {
+      status: "approved",
+    });
+    expect(
+      afterUpdate.find((budget) => budget.id === "a")?.status,
+    ).toBe("approved");
+
+    const afterDelete = await storageAdapter.deleteBudget("b");
+    expect(afterDelete).toHaveLength(1);
+    expect(afterDelete[0].id).toBe("a");
+
+    await storageAdapter.clearBudgets();
+    await expect(storageAdapter.getBudgets()).resolves.toEqual([]);
+  });
+
+  it("migrates legacy localStorage data into IndexedDB exactly once", async () => {
+    const legacyProfile: MeiProfile = {
+      companyName: "Empresa Legada",
+      userName: "Usuario Legado",
+      phone: "11988887777",
+      pixKey: "pix-legado",
+    };
+    const legacyBudget: Budget = {
+      id: "legacy-1",
+      number: 5,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      client: { name: "Cliente Legado" },
+      ...baseBudget,
+    };
+    localStorage.setItem(
+      "@OrcaRapido:mei_profile",
+      JSON.stringify(legacyProfile),
+    );
+    localStorage.setItem(
+      "@OrcaRapido:budgets",
+      JSON.stringify([legacyBudget]),
+    );
+
+    await expect(storageAdapter.getProfile()).resolves.toEqual(legacyProfile);
+    const migratedBudgets = await storageAdapter.getBudgets();
+    expect(migratedBudgets).toHaveLength(1);
+    expect(migratedBudgets[0].id).toBe("legacy-1");
+
+    // Uma segunda "gravação legada" no localStorage não deve ser reimportada:
+    // a migração já rodou uma vez e não pode sobrescrever dados existentes.
+    localStorage.setItem(
+      "@OrcaRapido:budgets",
+      JSON.stringify([{ ...legacyBudget, id: "should-not-appear" }]),
+    );
+    const budgetsAfterSecondRead = await storageAdapter.getBudgets();
+    expect(budgetsAfterSecondRead.map((budget) => budget.id)).toEqual([
+      "legacy-1",
+    ]);
+  });
+
+  it("does not migrate legacy budgets when IndexedDB already has data", async () => {
+    const existingBudget: Budget = {
+      id: "already-there",
+      number: 1,
+      createdAt: new Date().toISOString(),
+      client: { name: "Cliente Atual" },
+      ...baseBudget,
+    };
+    await storageAdapter.addBudget(existingBudget);
+
+    localStorage.setItem(
+      "@OrcaRapido:budgets",
+      JSON.stringify([{ ...existingBudget, id: "legacy-should-be-ignored" }]),
+    );
+
+    const budgets = await storageAdapter.getBudgets();
+    expect(budgets.map((budget) => budget.id)).toEqual(["already-there"]);
   });
 });

@@ -25,4 +25,16 @@ describe("document utils", () => {
     expect(isValidCpfCnpj("111.111.111-11")).toBe(false);
     expect(isValidCpfCnpj("12.345.678/0001-00")).toBe(false);
   });
+
+  it("validates a CPF whose check digit calculation wraps 10 to 0", () => {
+    // Vetor construído para exercitar o branch `result === 10 ? 0 : result`
+    // do cálculo do dígito verificador em validateCpf.
+    expect(isValidCpfCnpj("100.002.055-08")).toBe(true);
+  });
+
+  it("validates a CNPJ whose check digit calculation has remainder below 2", () => {
+    // Vetor construído para exercitar o branch `remainder < 2 ? 0 : ...`
+    // do cálculo do dígito verificador em validateCnpj.
+    expect(isValidCpfCnpj("00.000.000/3908-01")).toBe(true);
+  });
 });

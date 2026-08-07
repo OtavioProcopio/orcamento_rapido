@@ -97,4 +97,86 @@ describe("useProfile", () => {
       expect(result.current.error).toBe("Não foi possível salvar o perfil."),
     );
   });
+
+  it("ignores a profile load that resolves after unmount", async () => {
+    let resolveGetProfile: (value: MeiProfile | null) => void = () => {};
+    storageAdapterMock.getProfile.mockReturnValue(
+      new Promise((resolve) => {
+        resolveGetProfile = resolve;
+      }),
+    );
+
+    const { unmount } = renderHook(() => useProfile());
+    unmount();
+
+    // Resolver após o unmount não deve lançar nem tentar atualizar estado
+    // de um componente desmontado (guarda `if (!active) return`).
+    await act(async () => {
+      resolveGetProfile({
+        companyName: "Tardio",
+        userName: "Nome",
+        phone: "11999999999",
+        pixKey: "pix",
+      });
+      await Promise.resolve();
+    });
+  });
+
+  it("clears a pending 'saved' timeout when saving again quickly", async () => {
+    storageAdapterMock.getProfile.mockResolvedValue(null);
+    storageAdapterMock.saveProfile.mockResolvedValue();
+    const { result } = renderHook(() => useProfile());
+    const profile: MeiProfile = {
+      companyName: "Empresa",
+      userName: "Nome",
+      phone: "11999999999",
+      pixKey: "pix",
+      logo: undefined,
+    };
+
+    await act(async () => {
+      await result.current.saveProfile(profile);
+    });
+    expect(result.current.saved).toBe(true);
+
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+
+    await act(async () => {
+      await result.current.saveProfile(profile);
+    });
+    expect(result.current.saved).toBe(true);
+
+    // O timer da primeira chamada foi cancelado: 2s após a SEGUNDA chamada
+    // (não 1.5s, que seria 2s após a primeira) o flag ainda deve estar ativo.
+    act(() => {
+      jest.advanceTimersByTime(1500);
+    });
+    expect(result.current.saved).toBe(true);
+
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+    expect(result.current.saved).toBe(false);
+  });
+
+  it("clears the pending 'saved' timeout on unmount", async () => {
+    storageAdapterMock.getProfile.mockResolvedValue(null);
+    storageAdapterMock.saveProfile.mockResolvedValue();
+    const { result, unmount } = renderHook(() => useProfile());
+    const profile: MeiProfile = {
+      companyName: "Empresa",
+      userName: "Nome",
+      phone: "11999999999",
+      pixKey: "pix",
+      logo: undefined,
+    };
+
+    await act(async () => {
+      await result.current.saveProfile(profile);
+    });
+
+    expect(() => unmount()).not.toThrow();
+  });
 });

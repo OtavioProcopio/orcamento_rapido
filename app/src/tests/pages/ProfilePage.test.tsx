@@ -1,10 +1,20 @@
 import { MemoryRouter } from "react-router-dom";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ProfilePage } from "../../pages/ProfilePage";
 import { fileToBase64 } from "../../utils/file";
 
 const PROFILE_KEY = "@OrcaRapido:mei_profile";
+const navigateMock = jest.fn();
+
+jest.mock("react-router-dom", () => {
+  const actual: typeof import("react-router-dom") =
+    jest.requireActual("react-router-dom");
+  return {
+    ...actual,
+    useNavigate: () => navigateMock,
+  };
+});
 
 jest.mock("../../utils/file", () => ({
   fileToBase64: jest.fn(() => "abc"),
@@ -14,6 +24,19 @@ describe("ProfilePage", () => {
   beforeEach(() => {
     localStorage.clear();
     jest.clearAllMocks();
+  });
+
+  it("navigates back to the dashboard", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <ProfilePage />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Voltar" }));
+
+    expect(navigateMock).toHaveBeenCalledWith("/dashboard");
   });
 
   it("validates required fields", async () => {
@@ -75,6 +98,36 @@ describe("ProfilePage", () => {
     await userEvent.upload(input, file);
     await waitFor(() => {
       expect(fileToBase64).toHaveBeenCalled();
+    });
+    expect(await screen.findByAltText("Pré-visualização da logo")).toHaveAttribute(
+      "src",
+      "abc",
+    );
+  });
+
+  it("clears the logo preview when the file selection is cancelled", async () => {
+    render(
+      <MemoryRouter>
+        <ProfilePage />
+      </MemoryRouter>,
+    );
+    const input =
+      document.querySelector<HTMLInputElement>('input[type="file"]');
+    if (!input) {
+      throw new Error("File input not found");
+    }
+    const file = new File(["hello"], "hello.png", { type: "image/png" });
+    await userEvent.upload(input, file);
+    expect(
+      await screen.findByAltText("Pré-visualização da logo"),
+    ).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { files: [] } });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByAltText("Pré-visualização da logo"),
+      ).not.toBeInTheDocument();
     });
   });
 });

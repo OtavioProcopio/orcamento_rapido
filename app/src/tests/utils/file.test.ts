@@ -58,4 +58,32 @@ describe("fileToBase64", () => {
 
     await expect(fileToBase64(file)).rejects.toThrow("Falha ao ler arquivo.");
   });
+
+  it("resolves to an empty string when the reader result is not a string", async () => {
+    const file = new File(["test content"], "test.txt", { type: "text/plain" });
+
+    class MockFileReader {
+      onload:
+        | ((this: FileReader, ev: ProgressEvent<FileReader>) => void)
+        | null = null;
+      onerror:
+        | ((this: FileReader, ev: ProgressEvent<FileReader>) => void)
+        | null = null;
+      result: string | ArrayBuffer | null = new ArrayBuffer(0);
+
+      readAsDataURL = jest.fn(() => {
+        this.onload?.call(
+          this as unknown as FileReader,
+          new ProgressEvent("load") as unknown as ProgressEvent<FileReader>,
+        );
+      });
+    }
+
+    const fileReaderConstructor = jest.fn(
+      () => new MockFileReader() as unknown as FileReader,
+    );
+    global.FileReader = fileReaderConstructor as unknown as typeof FileReader;
+
+    await expect(fileToBase64(file)).resolves.toBe("");
+  });
 });

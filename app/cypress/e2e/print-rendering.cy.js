@@ -1,12 +1,21 @@
-// Regressão: já tivemos TRÊS bugs reais de impressão saindo em branco nesta
-// mesma funcionalidade — CSS escondendo o app com display:none, depois com
-// visibility:hidden (que deixava uma segunda página fantasma), e por fim um
-// iframe isolado que funcionava no desktop mas o Safari/Chrome de celular
-// tem uma limitação conhecida de imprimir a página inteira por trás em vez
-// do conteúdo do iframe. A impressão agora abre uma janela/aba separada de
-// verdade (não um iframe) só com o conteúdo do orçamento — técnica clássica
-// que não sofre da limitação de iframe em mobile. Este teste verifica o
-// HTML escrito nessa janela, não apenas que algo foi "chamado".
+// Regressão: já tivemos QUATRO bugs reais de impressão saindo em branco
+// nesta mesma funcionalidade — CSS escondendo o app com display:none,
+// depois com visibility:hidden (segunda página fantasma), um iframe
+// isolado que funcionava no desktop mas tem limitação conhecida em
+// mobile (Safari/Chrome imprimem a página de trás inteira), e por fim
+// `window.open(..., "noopener")`, que por especificação SEMPRE retorna
+// null — a aba abria (por isso "about:blank") mas o código não tinha
+// como escrever conteúdo nela nem chamar print().
+//
+// Esse último ficou escondido justamente porque os testes mockavam o
+// próprio window.open, testando a simulação em vez do comportamento real
+// do navegador. Tentamos aqui verificar com cy.spy (deixando a chamada
+// real acontecer) mas o Cypress roda o app dentro de um iframe da própria
+// interface dele e SEMPRE anula window.open, com ou sem noopener — não é
+// possível testar essa combinação específica aqui. A verificação real
+// contra um navegador de verdade está em playwright/print-window.spec.ts,
+// que usa Playwright justamente porque ele suporta abrir/inspecionar
+// janelas/abas de verdade, o que o Cypress não suporta.
 describe("Print rendering", () => {
   it("writes exactly the preview content into the print window, with the banner always visible", () => {
     cy.seedProfile();
@@ -31,12 +40,7 @@ describe("Print rendering", () => {
 
     cy.contains("Imprimir / Salvar PDF").click();
 
-    cy.get("@windowOpen").should(
-      "have.been.calledWith",
-      "",
-      "_blank",
-      "noopener,noreferrer",
-    );
+    cy.get("@windowOpen").should("have.been.calledWith", "", "_blank");
     cy.get("@printWrite").should(($write) => {
       const html = $write.args[0][0];
       expect(html).to.contain("Cliente Impressao Real");

@@ -19,7 +19,7 @@ module.exports = {
     "\\.(png|jpg|jpeg|svg|gif|webp)$":
       "<rootDir>/src/tests/__mocks__/fileMock.ts",
   },
-  testPathIgnorePatterns: ["/node_modules/", "/dist/"],
+  testPathIgnorePatterns: ["/node_modules/", "/dist/", "/playwright/"],
   coverageThreshold: {
     global: {
       branches: 90,

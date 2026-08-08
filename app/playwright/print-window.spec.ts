@@ -14,9 +14,15 @@ test("opens a real, printable popup window with the budget content when clicking
   page,
   context,
 }) => {
-  await page.goto("/dashboard");
-
-  await page.evaluate(() => {
+  // addInitScript roda antes de qualquer script da própria página, em
+  // toda navegação neste contexto. É essencial que rode ANTES de
+  // page.goto(): a migração de localStorage pra IndexedDB só roda uma vez
+  // e marca a si mesma como concluída mesmo se não achar nada pra
+  // migrar — setar isso via page.evaluate() DEPOIS do goto() inicial
+  // criava uma corrida onde o hook useProfile() já podia ter disparado a
+  // migração (vazia) antes do evaluate() escrever o dado, deixando o
+  // perfil permanentemente vazio pro resto do teste.
+  await context.addInitScript(() => {
     window.localStorage.setItem(
       "@OrcaRapido:mei_profile",
       JSON.stringify({
@@ -27,7 +33,8 @@ test("opens a real, printable popup window with the budget content when clicking
       }),
     );
   });
-  await page.reload();
+
+  await page.goto("/dashboard");
 
   await page.getByRole("button", { name: "Novo Orçamento" }).click();
   await page

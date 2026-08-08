@@ -11,16 +11,24 @@
       data: pra logo (upload vira base64) e pro conteúdo já embutido como
       data URI. A janela de impressão (utils/printBudget.ts) é escrita via
       document.write num popup same-origin e herda esta política — segue
-      funcionando porque style-src já libera inline.
+      funcionando porque style-src já libera inline. gc.zgo.at (script) e
+      otavioprocopio.goatcounter.com (beacon) são só pro contador de
+      visitas anônimo — nenhum dado de orçamento/cliente passa por ali,
+      só isso justifica abrir uma exceção no default-src 'self'.
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://otavioprocopio.goatcounter.com; font-src 'self'; connect-src 'self' https://otavioprocopio.goatcounter.com; object-src 'none'; base-uri 'self'; form-action 'self';"
     />
     <title>Orca Rapido</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script
+      data-goatcounter="https://otavioprocopio.goatcounter.com/count"
+      async
+      src="https://gc.zgo.at/count.js"
+    ></script>
   </body>
 </html>

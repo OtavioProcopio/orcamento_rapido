@@ -29,3 +29,27 @@ jobs:
 
       - name: Validate project
         run: make validate
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: make install
+
+      - name: Install Playwright browsers
+        run: cd app && npx playwright install --with-deps chromium
+
+      - name: Run E2E suites (Cypress + Playwright)
+        run: make e2e

@@ -122,7 +122,8 @@ e2e:
 	@set -e; \
 	trap '$(MAKE) -C $(CURDIR) dev-down' EXIT; \
 	$(MAKE) dev-up; \
-	cd $(APP_DIR) && CYPRESS_BASE_URL=$(CYPRESS_BASE_URL) npm run cy:run
+	cd $(APP_DIR) && CYPRESS_BASE_URL=$(CYPRESS_BASE_URL) npm run cy:run; \
+	cd $(CURDIR)/$(APP_DIR) && PLAYWRIGHT_BASE_URL=$(BASE_URL) npm run pw:run
 
 check: validate
 

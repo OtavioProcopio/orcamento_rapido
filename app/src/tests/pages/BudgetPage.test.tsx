@@ -88,7 +88,6 @@ describe("BudgetPage", () => {
     await user.click(screen.getByRole("checkbox", { name: /Observações e Termos/i }));
     await user.type(screen.getByRole("textbox", { name: /Regras de negócio/i }), "Garantia de 30 dias");
     await user.click(screen.getByRole("checkbox", { name: /Campo de Assinatura/i }));
-    await user.click(screen.getByRole("checkbox", { name: /Banner de Parceria/i }));
 
     await user.click(screen.getByRole("button", { name: /Salvar Orçamento/i }));
 
@@ -106,7 +105,7 @@ describe("BudgetPage", () => {
       modules: {
         showTerms: true,
         showSignature: false,
-        removeAds: true,
+        removeAds: false,
       },
       totals: {
         subtotal: 50,

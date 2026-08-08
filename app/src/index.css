@@ -125,44 +125,16 @@ textarea {
   font-family: inherit;
 }
 
-.print-document-area {
-  position: fixed;
-  left: -10000px;
-  top: 0;
-  width: 210mm;
-  background: #ffffff;
-}
-
+/* A impressão roda numa janela própria e isolada (ver utils/printBudget.ts),
+   que só contém o preview do orçamento — nada mais no app precisa ser
+   escondido via CSS de impressão. As regras abaixo (tamanho A4, evitar
+   quebra de linha, repetir cabeçalho da tabela) ainda se aplicam porque
+   essa janela clona as folhas de estilo do documento principal, incluindo
+   esta. */
 @media print {
   @page {
     size: A4;
     margin: 0;
-  }
-
-  html,
-  body {
-    background: #ffffff !important;
-    margin: 0 !important;
-    min-height: 100% !important;
-    overflow: visible !important;
-  }
-
-  #root {
-    display: none !important;
-  }
-
-  .print-document-area,
-  .print-document-area * {
-    visibility: visible !important;
-  }
-
-  .print-document-area {
-    left: 0 !important;
-    top: 0 !important;
-    width: 210mm !important;
-    min-height: 297mm !important;
-    position: absolute !important;
-    overflow: visible !important;
   }
 
   .budget-preview-page {

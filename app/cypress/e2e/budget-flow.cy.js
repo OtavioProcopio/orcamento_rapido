@@ -56,12 +56,22 @@ describe("Orca Rapido flow", () => {
     cy.contains("PIX na entrega").should("be.visible");
     cy.screenshot("03-dashboard-com-orcamento");
 
+    // A impressão abre uma janela separada (window.open) com o conteúdo do
+    // orçamento — espiona a chamada pra confirmar que o mecanismo foi
+    // acionado com o conteúdo certo, sem abrir uma janela de verdade.
     cy.window().then((win) => {
-      cy.stub(win, "print").as("print");
+      const fakePrintWindow = {
+        document: { open: cy.stub(), write: cy.stub().as("printWrite"), close: cy.stub() },
+        focus: cy.stub(),
+        print: cy.stub(),
+        addEventListener: cy.stub(),
+      };
+      cy.stub(win, "open").returns(fakePrintWindow);
     });
     cy.contains("Imprimir / Salvar PDF").click();
-    cy.contains("TOTAL GERAL").should("exist");
-    cy.get("@print").should("have.been.called");
+    cy.get("@printWrite").should(($write) => {
+      expect($write.args[0][0]).to.contain("Cliente A");
+    });
 
     cy.contains("Excluir").click();
     cy.contains("Confirmar").click();

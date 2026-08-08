@@ -142,7 +142,6 @@ export function BudgetPage() {
       texto: "",
     },
     assinatura: true,
-    bannerParceria: true,
     status: "draft" as Budget["status"],
   });
 
@@ -250,7 +249,6 @@ export function BudgetPage() {
           texto: sourceBudget.terms ?? "",
         },
         assinatura: sourceBudget.modules.showSignature,
-        bannerParceria: !sourceBudget.modules.removeAds,
         status: sourceBudget.status,
       });
       setIsDirty(false);
@@ -399,7 +397,8 @@ export function BudgetPage() {
       modules: {
         showTerms: config.observacoes.ativo,
         showSignature: config.assinatura,
-        removeAds: !config.bannerParceria,
+        // O banner de apoio não pode ser removido no plano gratuito.
+        removeAds: false,
       },
       totals: {
         subtotal,
@@ -1022,16 +1021,6 @@ export function BudgetPage() {
                   checked={config.assinatura}
                   onChange={(c) => handleConfigChange({ ...config, assinatura: c })}
                 />
-
-                <hr className="my-1 border-white/10" />
-
-                <Toggle
-                  label="Banner de Parceria (Apoie o Gerador)"
-                  checked={config.bannerParceria}
-                  onChange={(c) =>
-                    handleConfigChange({ ...config, bannerParceria: c })
-                  }
-                />
               </div>
             </AccordionItem>
           </div>
@@ -1056,7 +1045,7 @@ export function BudgetPage() {
               total={total > 0 ? total : 0}
               showLogo={config.exibirLogo}
               showSignature={config.assinatura}
-              showBanner={config.bannerParceria}
+              showBanner
               paymentTerms={
                 config.condicoesPagamento.ativo
                   ? config.condicoesPagamento.texto

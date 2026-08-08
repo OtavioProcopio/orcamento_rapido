@@ -55,6 +55,31 @@ describe("Budget management flows", () => {
     cy.contains("Cliente Preservado").should("be.visible");
   });
 
+  it("shares a generated budget via WhatsApp with a pre-filled message", () => {
+    cy.contains("Novo Orçamento").click();
+    cy.get("input[name='clientName']").type("Cliente WhatsApp");
+    cy.get("input[name='clientPhone']").type("11988887777");
+    cy.contains("2. Itens e Valores").click();
+    cy.get("input[name='items.0.descricao']").type("Servico");
+    cy.get("input[name='items.0.valorUnitario']").clear().type("100");
+    cy.contains("Salvar Orçamento").click();
+    cy.contains("Meu Painel", { timeout: 15000 }).should("be.visible");
+
+    cy.window().then((win) => {
+      cy.stub(win, "open").as("whatsappOpen");
+    });
+    cy.contains("article", "Cliente WhatsApp")
+      .contains("button", "Compartilhar via WhatsApp")
+      .click();
+
+    cy.get("@whatsappOpen").should(
+      "have.been.calledWith",
+      Cypress.sinon.match(/^https:\/\/wa\.me\/5511988887777\?text=/),
+      "_blank",
+      "noopener,noreferrer",
+    );
+  });
+
   it("filters the history by search term", () => {
     cy.contains("Novo Orçamento").click();
     cy.createBudget({ clientName: "Maria Comercio", value: 10 });

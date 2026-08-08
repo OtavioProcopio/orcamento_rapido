@@ -230,9 +230,14 @@ export const BudgetPreview = forwardRef<HTMLDivElement, BudgetPreviewProps>(
             <div className="mt-4 bg-blue-50/50 border border-blue-100 py-3 px-4 rounded-lg text-center flex items-center justify-center gap-3">
               <p className="text-slate-600 font-medium text-[10px] sm:text-xs">
                 Orçamento digital gratuito criado por{" "}
-                <span className="font-bold text-blue-600">
-                  orcarapido.app.br
-                </span>
+                <a
+                  href="https://otavioprocopio.github.io/orcamento_rapido/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-blue-600"
+                >
+                  otavioprocopio.github.io/orcamento_rapido
+                </a>
               </p>
             </div>
           )}

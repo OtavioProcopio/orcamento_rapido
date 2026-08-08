@@ -1,8 +1,9 @@
 import { MemoryRouter } from "react-router-dom";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Budget } from "../../types";
 import { HomePage } from "../../pages/HomePage";
+import { printBudget } from "../../utils/printBudget";
 
 const navigateMock = jest.fn();
 const clearBudgetsMock = jest.fn();
@@ -36,6 +37,12 @@ jest.mock("../../hooks/useProfile", () => ({
   }),
 }));
 
+jest.mock("../../utils/printBudget", () => ({
+  printBudget: jest.fn(() => true),
+}));
+
+const printBudgetMock = jest.mocked(printBudget);
+
 const makeBudget = (overrides: Partial<Budget> = {}): Budget => ({
   id: "b1",
   number: 1,
@@ -66,7 +73,7 @@ describe("HomePage navigation and print validity", () => {
     navigateMock.mockReset();
     clearBudgetsMock.mockReset();
     deleteBudgetMock.mockReset();
-    jest.spyOn(window, "print").mockImplementation(() => undefined);
+    printBudgetMock.mockClear();
   });
 
   afterEach(() => {
@@ -113,14 +120,13 @@ describe("HomePage navigation and print validity", () => {
     expect(navigateMock).toHaveBeenCalledWith("/builder");
   });
 
-  it("computes and shows the validity window when printing a budget with validUntil", async () => {
-    budgets = [
-      makeBudget({
-        id: "with-validity",
-        createdAt: "2026-05-01T12:00:00.000Z",
-        validUntil: "2026-05-08T12:00:00.000Z",
-      }),
-    ];
+  it("opens the print window with the selected budget's data", async () => {
+    const budget = makeBudget({
+      id: "with-validity",
+      createdAt: "2026-05-01T12:00:00.000Z",
+      validUntil: "2026-05-08T12:00:00.000Z",
+    });
+    budgets = [budget];
     const user = userEvent.setup();
     renderPage();
 
@@ -128,27 +134,9 @@ describe("HomePage navigation and print validity", () => {
       screen.getByRole("button", { name: "Imprimir / Salvar PDF" }),
     );
 
-    expect(screen.getByText(/Validade:/).closest("p")).toHaveTextContent(
-      "7 dias",
+    expect(printBudgetMock).toHaveBeenCalledWith(
+      budget,
+      expect.objectContaining({ companyName: "" }),
     );
-    await waitFor(() => expect(window.print).toHaveBeenCalled());
-  });
-
-  it("omits the validity window when validUntil is not after createdAt", async () => {
-    budgets = [
-      makeBudget({
-        id: "expired-window",
-        createdAt: "2026-05-01T12:00:00.000Z",
-        validUntil: "2026-05-01T12:00:00.000Z",
-      }),
-    ];
-    const user = userEvent.setup();
-    renderPage();
-
-    await user.click(
-      screen.getByRole("button", { name: "Imprimir / Salvar PDF" }),
-    );
-
-    expect(screen.queryByText(/Validade:/)).not.toBeInTheDocument();
   });
 });

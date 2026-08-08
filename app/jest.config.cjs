@@ -1,6 +1,10 @@
 /** @type {import('jest').Config} */
 module.exports = {
   testEnvironment: "jsdom",
+  // Espelha o `define` do vite.config.ts para código que roda em testes.
+  globals: {
+    __APP_BASENAME__: "/",
+  },
   setupFilesAfterEnv: ["<rootDir>/src/tests/setupTests.ts"],
   transform: {
     "^.+\\.(ts|tsx)$": [

@@ -56,12 +56,15 @@ describe("Orca Rapido flow", () => {
     cy.contains("PIX na entrega").should("be.visible");
     cy.screenshot("03-dashboard-com-orcamento");
 
+    // Impressão roda num iframe isolado (react-to-print), não mais via
+    // window.print() direto na janela principal — espiona a criação do
+    // elemento pra confirmar que o mecanismo de impressão foi acionado.
     cy.window().then((win) => {
-      cy.stub(win, "print").as("print");
+      cy.spy(win.document, "createElement").as("createElement");
     });
     cy.contains("Imprimir / Salvar PDF").click();
     cy.contains("TOTAL GERAL").should("exist");
-    cy.get("@print").should("have.been.called");
+    cy.get("@createElement").should("have.been.calledWith", "iframe");
 
     cy.contains("Excluir").click();
     cy.contains("Confirmar").click();

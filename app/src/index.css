@@ -125,7 +125,12 @@ textarea {
   font-family: inherit;
 }
 
-.print-document-area {
+/* Fica fora da tela: só existe como fonte de conteúdo pro react-to-print
+   clonar num iframe isolado (ver HomePage.tsx). Como a impressão roda num
+   documento à parte, não precisamos mais esconder o resto do app via CSS
+   de impressão — a técnica anterior ("visibility/display hidden em tudo
+   exceto isto") já se mostrou frágil demais entre navegadores/mobile. */
+.print-source-area {
   position: fixed;
   left: -10000px;
   top: 0;
@@ -137,44 +142,6 @@ textarea {
   @page {
     size: A4;
     margin: 0;
-  }
-
-  html,
-  body {
-    background: #ffffff !important;
-    margin: 0 !important;
-    min-height: 100% !important;
-    overflow: visible !important;
-  }
-
-  /* visibility:hidden em tudo (em vez de display:none) é o padrão mais
-     confiável entre navegadores pra "imprimir só este elemento" — mas
-     visibility NÃO remove a caixa do fluxo do documento. Sozinho, o #root
-     (que tem min-height: 100vh) continua ocupando espaço mesmo invisível,
-     empurrando o conteúdo real pra uma segunda página em branco. Por isso
-     o #root também leva display:none: ele é um elemento fixo e sempre
-     presente (não sofre do problema de timing de conteúdo recém-inserido
-     via portal), então tirá-lo do fluxo por completo é seguro. */
-  body * {
-    visibility: hidden !important;
-  }
-
-  #root {
-    display: none !important;
-  }
-
-  .print-document-area,
-  .print-document-area * {
-    visibility: visible !important;
-  }
-
-  .print-document-area {
-    position: static !important;
-    left: auto !important;
-    top: auto !important;
-    width: 210mm !important;
-    min-height: 297mm !important;
-    overflow: visible !important;
   }
 
   .budget-preview-page {

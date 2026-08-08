@@ -36,6 +36,12 @@ jest.mock("../../hooks/useProfile", () => ({
   }),
 }));
 
+const triggerPrintMock = jest.fn();
+
+jest.mock("react-to-print", () => ({
+  useReactToPrint: () => triggerPrintMock,
+}));
+
 const makeBudget = (overrides: Partial<Budget> = {}): Budget => ({
   id: "b1",
   number: 1,
@@ -66,7 +72,7 @@ describe("HomePage navigation and print validity", () => {
     navigateMock.mockReset();
     clearBudgetsMock.mockReset();
     deleteBudgetMock.mockReset();
-    jest.spyOn(window, "print").mockImplementation(() => undefined);
+    triggerPrintMock.mockClear();
   });
 
   afterEach(() => {
@@ -131,7 +137,7 @@ describe("HomePage navigation and print validity", () => {
     expect(screen.getByText(/Validade:/).closest("p")).toHaveTextContent(
       "7 dias",
     );
-    await waitFor(() => expect(window.print).toHaveBeenCalled());
+    await waitFor(() => expect(triggerPrintMock).toHaveBeenCalled());
   });
 
   it("omits the validity window when validUntil is not after createdAt", async () => {

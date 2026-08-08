@@ -1,32 +1,15 @@
-// Regressão: window.print() sendo chamado não prova que o PDF sai com
-// conteúdo — um bug real em produção deixava a impressão em branco porque o
-// CSS escondia o app via `display: none` em vez de `visibility: hidden`,
-// o que alguns motores de impressão não recalculam a tempo pra conteúdo
-// inserido via portal do React. Este teste emula mídia de impressão de
-// verdade (via CDP) e verifica que a área de impressão fica visível com
-// conteúdo, e que o resto do app fica oculto.
+// Regressão: window.print() sendo chamado (ou, hoje, o iframe de impressão
+// sendo criado) não prova que o PDF sai com conteúdo. Já tivemos dois bugs
+// reais aqui: primeiro o CSS escondia o app via `display: none` (motor de
+// impressão não recalculava a tempo pra conteúdo de portal → PDF em
+// branco), depois trocamos pra `visibility: hidden` e o #root (que não sai
+// do fluxo com visibility) empurrava o conteúdo pra uma segunda página em
+// branco. A impressão agora roda via react-to-print, que clona o conteúdo
+// num iframe isolado em vez de esconder o app inteiro — elimina essa
+// categoria de bug inteira, inclusive as diferenças de motor de impressão
+// entre desktop e mobile que a técnica anterior não sobrevivia.
 describe("Print rendering", () => {
-  const emulatePrintMedia = () =>
-    cy.then(() =>
-      Cypress.automation("remote:debugger:protocol", {
-        command: "Emulation.setEmulatedMedia",
-        params: { media: "print" },
-      }),
-    );
-
-  const restoreScreenMedia = () =>
-    cy.then(() =>
-      Cypress.automation("remote:debugger:protocol", {
-        command: "Emulation.setEmulatedMedia",
-        params: { media: "screen" },
-      }),
-    );
-
-  afterEach(() => {
-    restoreScreenMedia();
-  });
-
-  it("keeps the budget content visible and readable under print media", () => {
+  it("keeps the source content correct and triggers the print iframe", () => {
     cy.seedProfile();
     cy.visit("/dashboard");
     cy.contains("Novo Orçamento").click();
@@ -34,39 +17,23 @@ describe("Print rendering", () => {
     cy.contains("Cliente Impressao Real").should("be.visible");
 
     cy.window().then((win) => {
-      cy.stub(win, "print").as("print");
+      cy.spy(win.document, "createElement").as("createElement");
     });
+
     cy.contains("Imprimir / Salvar PDF").click();
-    cy.get("@print").should("have.been.called");
 
-    emulatePrintMedia();
-
-    cy.get(".print-document-area")
-      .should("be.visible")
+    // O conteúdo que o react-to-print vai clonar pro iframe de impressão
+    // precisa estar correto e presente ANTES da impressão ser acionada —
+    // é essa fonte que a biblioteca copia, então validar aqui garante que
+    // o PDF resultante teria os dados certos.
+    cy.get(".print-source-area")
+      .should("exist")
       .and(($el) => {
         expect($el.text()).to.contain("Cliente Impressao Real");
         expect($el.text()).to.contain("250,00");
       });
 
-    cy.get(".print-document-area").then(($el) => {
-      const styles = window.getComputedStyle($el[0]);
-      expect(styles.visibility).to.eq("visible");
-    });
-
-    // O resto do app (dashboard por trás) não pode aparecer na impressão,
-    // e precisa estar fora do fluxo do documento (display: none) — só
-    // visibility:hidden ainda ocuparia espaço (min-height: 100vh do #root)
-    // e empurraria o conteúdo real pra uma segunda página em branco.
-    cy.get("#root").then(($el) => {
-      const styles = window.getComputedStyle($el[0]);
-      expect(styles.display).to.eq("none");
-    });
-
-    // Regressão de "página fantasma": se algo além da área de impressão
-    // ainda ocupar espaço no fluxo, a altura total do documento impresso
-    // passa muito de uma página A4 (~297mm ≈ 1122px a 96dpi).
-    cy.document().then((doc) => {
-      expect(doc.body.scrollHeight).to.be.lessThan(1400);
-    });
+    // Confirma que o mecanismo de impressão (iframe isolado) foi acionado.
+    cy.get("@createElement").should("have.been.calledWith", "iframe");
   });
 });

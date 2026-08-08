@@ -1,13 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useReactToPrint } from "react-to-print";
 import { BudgetPreview } from "../components/BudgetPreview";
 import { Button } from "../components/Button";
 import { ConfirmationDialog } from "../components/ConfirmationDialog";
 import { EmptyState } from "../components/EmptyState";
 import { useBudget } from "../hooks/useBudget";
 import { useProfile } from "../hooks/useProfile";
-import { createBrowserPrintSession } from "../utils/browserPrintService";
 import { formatCurrency, formatDate } from "../utils/format";
 import { buildBudgetWhatsAppShareUrl } from "../utils/whatsapp";
 import type { Budget } from "../types";
@@ -46,6 +45,7 @@ export const HomePage = () => {
   const { profile } = useProfile();
   const [printBudgetId, setPrintBudgetId] = useState<string | null>(null);
   const [printError, setPrintError] = useState<string | null>(null);
+  const printContentRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
   const [confirmation, setConfirmation] = useState<
     | { action: "delete"; budgetId: string; label: string }
@@ -86,19 +86,31 @@ export const HomePage = () => {
     );
   }, [budgets, search]);
 
+  const triggerPrint = useReactToPrint({
+    contentRef: printContentRef,
+    documentTitle: printBudget
+      ? `orcamento-${printBudget.number}`
+      : "orcamento",
+    onAfterPrint: () => setPrintBudgetId(null),
+    onPrintError: () => {
+      setPrintBudgetId(null);
+      setPrintError("Não foi possível abrir a impressão deste orçamento.");
+    },
+  });
+
   useEffect(() => {
     if (!printBudget) {
       return undefined;
     }
 
-    return createBrowserPrintSession({
-      onAfterPrint: () => setPrintBudgetId(null),
-      onError: () => {
-        setPrintBudgetId(null);
-        setPrintError("Não foi possível abrir a impressão deste orçamento.");
-      },
-    });
-  }, [printBudget]);
+    // Espera o próximo tick pra garantir que o conteúdo referenciado já
+    // renderizou com os dados do orçamento selecionado antes de imprimir.
+    const timer = window.setTimeout(() => {
+      triggerPrint();
+    }, 50);
+
+    return () => window.clearTimeout(timer);
+  }, [printBudget, triggerPrint]);
 
   const handlePrintBudget = (budgetId: string) => {
     setPrintError(null);
@@ -134,7 +146,7 @@ export const HomePage = () => {
   };
 
   const printDocument = printBudget ? (
-    <div className="print-document-area" aria-hidden="true">
+    <div ref={printContentRef} className="print-source-area" aria-hidden="true">
       <BudgetPreview
         profile={profileData}
         proposalNumber={printBudget.number}
@@ -393,7 +405,7 @@ export const HomePage = () => {
           )}
         </section>
       </div>
-      {printDocument ? createPortal(printDocument, document.body) : null}
+      {printDocument}
       {confirmation ? (
         <ConfirmationDialog
           title={

@@ -1,5 +1,5 @@
 import { MemoryRouter } from "react-router-dom";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Budget } from "../../types";
 import { HomePage } from "../../pages/HomePage";
@@ -24,6 +24,21 @@ jest.mock("../../hooks/useProfile", () => ({
     loading: false,
     error: null,
   }),
+}));
+
+const triggerPrintMock = jest.fn();
+const printOptionsHolder: {
+  current: {
+    onAfterPrint?: () => void;
+    onPrintError?: () => void;
+  } | null;
+} = { current: null };
+
+jest.mock("react-to-print", () => ({
+  useReactToPrint: (options: (typeof printOptionsHolder)["current"]) => {
+    printOptionsHolder.current = options;
+    return triggerPrintMock;
+  },
 }));
 
 const makeBudget = (overrides: Partial<Budget> = {}): Budget => {
@@ -55,8 +70,9 @@ beforeEach(() => {
   budgets = [];
   clearBudgetsMock.mockClear();
   deleteBudgetMock.mockClear();
+  triggerPrintMock.mockClear();
+  printOptionsHolder.current = null;
   jest.clearAllMocks();
-  jest.spyOn(window, "print").mockImplementation(() => undefined);
 });
 
 afterEach(() => {
@@ -131,10 +147,10 @@ describe("HomePage", () => {
     );
 
     expect(screen.getByText("Servico para imprimir")).toBeInTheDocument();
-    await waitFor(() => expect(window.print).toHaveBeenCalled());
+    await waitFor(() => expect(triggerPrintMock).toHaveBeenCalled());
   });
 
-  it("shows a user-facing error when native print fails", async () => {
+  it("shows a user-facing error when the print library reports a failure", async () => {
     budgets = [
       makeBudget({
         id: "print-error",
@@ -150,9 +166,6 @@ describe("HomePage", () => {
         ],
       }),
     ];
-    jest.spyOn(window, "print").mockImplementation(() => {
-      throw new Error("print failed");
-    });
     const user = userEvent.setup();
 
     render(
@@ -164,6 +177,11 @@ describe("HomePage", () => {
     await user.click(
       screen.getByRole("button", { name: "Imprimir / Salvar PDF" }),
     );
+    await waitFor(() => expect(triggerPrintMock).toHaveBeenCalled());
+
+    act(() => {
+      printOptionsHolder.current?.onPrintError?.();
+    });
 
     expect(
       await screen.findByText("Não foi possível abrir a impressão deste orçamento."),

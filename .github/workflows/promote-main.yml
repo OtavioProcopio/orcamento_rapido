@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: promote-main
@@ -123,3 +124,15 @@ jobs:
           git push origin "${next_tag}"
 
           echo "Promoted ${HEAD_SHA} to main and created ${next_tag}."
+
+      - name: Trigger Pages deploy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Um push feito com o GITHUB_TOKEN (como o desta automação) NÃO
+          # dispara outros workflows automaticamente — é uma proteção do
+          # GitHub contra loop infinito. Sem este passo explícito, o
+          # workflow "Deploy Pages" (que reage a push em main) nunca
+          # rodaria sozinho depois de uma promoção.
+          gh workflow run "Deploy Pages" --ref main

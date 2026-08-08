@@ -31,7 +31,12 @@ const profile: MeiProfile = {
 };
 
 class FakePrintWindow {
-  document = {
+  document: {
+    open: jest.Mock;
+    write: jest.Mock;
+    close: jest.Mock;
+    fonts?: { ready: Promise<unknown> };
+  } = {
     open: jest.fn(),
     write: jest.fn(),
     close: jest.fn(),
@@ -92,6 +97,18 @@ describe("printBudget utils", () => {
       expect(html).not.toContain("Validade");
     });
 
+    it("overrides body min-height so the app's full-viewport gradient rule doesn't force a phantom blank page", () => {
+      // index.css define `body { min-height: 100vh }` pra manter o
+      // gradiente de fundo do app cobrindo a tela toda — essa regra é
+      // clonada pra dentro da janela de impressão junto com o resto da
+      // folha de estilo, e sem essa sobrescrita ela força o body a ficar
+      // tão alto quanto o viewport (bem maior que o conteúdo do
+      // orçamento), estourando pra uma segunda página em branco.
+      const html = buildBudgetPrintHtml(baseBudget, profile);
+
+      expect(html).toMatch(/html,\s*body\s*{[^}]*min-height:\s*0/);
+    });
+
     it("includes payment terms and observations when present", () => {
       const html = buildBudgetPrintHtml(
         {
@@ -122,7 +139,7 @@ describe("printBudget utils", () => {
       const result = printBudget(baseBudget, profile, openWindow);
 
       expect(result).toBe(false);
-      expect(openWindow).toHaveBeenCalledWith("", "_blank", "noopener,noreferrer");
+      expect(openWindow).toHaveBeenCalledWith("", "_blank");
     });
 
     it("writes the budget HTML into the opened window and triggers print", () => {
@@ -145,14 +162,55 @@ describe("printBudget utils", () => {
       expect(fakeWindow.print).toHaveBeenCalled();
     });
 
-    it("closes the print window after the afterprint event fires", () => {
+    it("does not auto-close the print window on afterprint", () => {
+      // Fechar sozinho em "afterprint" foi tentado e removido: em mobile a
+      // geração do PDF é assíncrona e pode continuar rodando depois do
+      // evento disparar, então fechar ali arrisca cortar a impressão no
+      // meio. O usuário fecha a aba manualmente.
       const fakeWindow = new FakePrintWindow();
       const openWindow = jest.fn(() => fakeWindow as unknown as Window);
 
       printBudget(baseBudget, profile, openWindow);
       fakeWindow.dispatch("afterprint");
 
-      expect(fakeWindow.close).toHaveBeenCalled();
+      expect(fakeWindow.close).not.toHaveBeenCalled();
+      expect(fakeWindow.addEventListener).not.toHaveBeenCalledWith(
+        "afterprint",
+        expect.anything(),
+      );
+    });
+
+    it("waits for document.fonts.ready before printing when available", async () => {
+      const fakeWindow = new FakePrintWindow();
+      let resolveFonts: () => void = () => {};
+      fakeWindow.document.fonts = {
+        ready: new Promise((resolve) => {
+          resolveFonts = () => resolve(undefined);
+        }),
+      };
+      const openWindow = jest.fn(() => fakeWindow as unknown as Window);
+
+      printBudget(baseBudget, profile, openWindow);
+
+      await jest.advanceTimersByTimeAsync(150);
+      expect(fakeWindow.print).not.toHaveBeenCalled();
+
+      resolveFonts();
+      await jest.advanceTimersByTimeAsync(0);
+      expect(fakeWindow.print).toHaveBeenCalled();
+    });
+
+    it("prints anyway if fonts.ready never resolves, after the safety timeout", async () => {
+      const fakeWindow = new FakePrintWindow();
+      fakeWindow.document.fonts = {
+        ready: new Promise(() => {}), // nunca resolve
+      };
+      const openWindow = jest.fn(() => fakeWindow as unknown as Window);
+
+      printBudget(baseBudget, profile, openWindow);
+
+      await jest.advanceTimersByTimeAsync(150 + 2000);
+      expect(fakeWindow.print).toHaveBeenCalled();
     });
 
     it("does not throw when the window's print() call fails", () => {
@@ -176,7 +234,7 @@ describe("printBudget utils", () => {
       const result = printBudget(baseBudget, profile);
 
       expect(result).toBe(true);
-      expect(openSpy).toHaveBeenCalledWith("", "_blank", "noopener,noreferrer");
+      expect(openSpy).toHaveBeenCalledWith("", "_blank");
       openSpy.mockRestore();
     });
   });

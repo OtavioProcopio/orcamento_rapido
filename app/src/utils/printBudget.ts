@@ -17,13 +17,30 @@ const calculateValidityDays = (budget: Budget): number | undefined => {
   return days > 0 ? days : undefined;
 };
 
-// Clona todas as folhas de estilo do documento atual (tanto <link> de
-// produção quanto as <style> que o Vite injeta em dev) pra que a janela de
-// impressão, isolada, renderize com exatamente a mesma aparência do
-// preview em tela.
+// Em produção o CSS vem de um <link rel="stylesheet"> externo. Clonar essa
+// tag literalmente faria a janela de impressão precisar buscar o arquivo
+// de novo pela rede antes de conseguir renderizar — em conexão lenta
+// (típico em mobile) isso corre contra o atraso fixo antes do print() e
+// pode disparar a impressão num documento ainda sem estilo, ou falhar.
+// Em vez de clonar a tag, lemos as regras já parseadas de
+// `document.styleSheets` (a folha já está carregada nesta página) e
+// embutimos como <style> inline — a janela de impressão não depende de
+// nenhuma requisição de rede pra CSS.
 const collectStyleTags = (): string =>
-  Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-    .map((node) => node.outerHTML)
+  Array.from(document.styleSheets)
+    .map((sheet) => {
+      try {
+        const rules = Array.from(sheet.cssRules)
+          .map((rule) => rule.cssText)
+          .join("\n");
+        return `<style>${rules}</style>`;
+      } catch {
+        // Folha de outra origem sem CORS liberado não deixa ler
+        // cssRules — o app não carrega CSS de terceiros, mas fica
+        // defensivo caso isso mude no futuro.
+        return "";
+      }
+    })
     .join("\n");
 
 // Renderiza de forma síncrona num nó desanexado do documento (React não
@@ -75,14 +92,23 @@ export const buildBudgetPrintHtml = (
     ${collectStyleTags()}
     <style>
       @page { size: A4; margin: 0; }
-      html, body { margin: 0; background: #ffffff; }
+      /* min-height: 0 sobrescreve a regra "body { min-height: 100vh }" do
+         index.css, clonada acima por collectStyleTags() junto com todo o
+         resto da folha de estilo do app. Esse min-height existe pra manter
+         o gradiente de fundo cobrindo a tela toda no app normal, mas na
+         janela de impressão ele força o body a ficar tão alto quanto o
+         viewport (ou a altura da página no cálculo de vh em impressão),
+         bem maior que o conteúdo real — empurrando pra uma segunda página
+         em branco. */
+      html, body { margin: 0; min-height: 0; background: #ffffff; }
     </style>
   </head>
   <body>${previewHtml}</body>
 </html>`;
 };
 
-const PRINT_DELAY_MS = 300;
+const PRINT_DELAY_MS = 150;
+const FONT_READY_TIMEOUT_MS = 2000;
 
 export type OpenPrintWindow = (
   url?: string,
@@ -99,7 +125,13 @@ export const printBudget = (
   profile: MeiProfile,
   openWindow: OpenPrintWindow = window.open.bind(window),
 ): boolean => {
-  const printWindow = openWindow("", "_blank", "noopener,noreferrer");
+  // Sem "noopener": essa flag faz window.open() retornar null por
+  // especificação (é assim que noopener corta a referência de propósito),
+  // o que tornava IMPOSSÍVEL escrever conteúdo ou chamar print() na janela
+  // aberta — ela ficava travada em about:blank pra sempre. Como o conteúdo
+  // é 100% nosso (nenhuma URL de terceiro é carregada), não há o risco de
+  // reverse tabnabbing que "noopener" existe pra prevenir.
+  const printWindow = openWindow("", "_blank");
 
   if (!printWindow) {
     return false;
@@ -110,21 +142,14 @@ export const printBudget = (
   printWindow.document.write(html);
   printWindow.document.close();
 
-  // Fecha a janela sozinha depois de imprimir, como boa prática de UX —
-  // best-effort: se o navegador não disparar o evento, a janela só fica
-  // aberta e o usuário pode fechar manualmente.
-  printWindow.addEventListener("afterprint", () => {
-    printWindow.close();
-  });
+  // Fechar a janela sozinha em "afterprint" foi tentado e removido: em
+  // mobile a impressão/geração de PDF costuma ser assíncrona (o evento
+  // pode disparar antes do sistema terminar de gerar o arquivo a partir
+  // do conteúdo da janela), então fechar nesse momento arrisca cortar a
+  // geração no meio, quebrando a impressão. Deixa o usuário fechar a aba
+  // manualmente — é menos elegante, mas não arrisca a impressão em si.
 
-  // Atraso fixo em vez de esperar o evento "load": como document.write +
-  // close já constroem o documento de forma síncrona, escutar "load" tem
-  // uma corrida real — em documentos sem <link> externo (dev, tudo inline)
-  // o evento pode disparar antes do listener ser registrado, e o print
-  // nunca aconteceria. A folha de estilo de produção é do mesmo domínio e
-  // normalmente já está em cache do navegador, então esse atraso é mais
-  // que suficiente pra aplicar o layout antes de imprimir.
-  window.setTimeout(() => {
+  const triggerPrint = () => {
     try {
       printWindow.focus();
       printWindow.print();
@@ -132,6 +157,24 @@ export const printBudget = (
       // A janela continua aberta; o usuário pode imprimir manualmente
       // pelo próprio menu do navegador se o disparo automático falhar.
     }
+  };
+
+  // Um atraso fixo curto pra deixar o documento (construído de forma
+  // síncrona por document.write + close) assentar, e então esperar de
+  // verdade o carregamento das fontes (@font-face ainda depende de rede
+  // mesmo com o CSS embutido) antes de imprimir — com um teto de
+  // segurança pra não travar pra sempre se `fonts.ready` nunca resolver.
+  window.setTimeout(() => {
+    const fontsReady = printWindow.document.fonts?.ready;
+    if (!fontsReady?.then) {
+      triggerPrint();
+      return;
+    }
+
+    const timeout = new Promise<void>((resolve) => {
+      window.setTimeout(resolve, FONT_READY_TIMEOUT_MS);
+    });
+    Promise.race([fontsReady, timeout]).then(triggerPrint, triggerPrint);
   }, PRINT_DELAY_MS);
 
   return true;

@@ -137,10 +137,18 @@ textarea {
     margin: 0;
   }
 
+  /* Nem min-height nem aspect-ratio fixos aqui: a classe base usa
+     aspect-[1/1.4142] (proporção de uma A4 inteira), que sozinha já força
+     a altura a partir da largura, empurrando o conteúdo pra uma altura de
+     página cheia mesmo sem min-height. Isso estourava pra uma segunda
+     página em branco em pipelines de impressão mobile que não respeitam
+     `@page size: A4` à risca e usam Letter (279.4mm, mais curto) por
+     padrão. Deixando a altura livre (definida só pelo conteúdo), o
+     documento sempre cabe numa página só, com qualquer tamanho de papel. */
   .budget-preview-page {
     width: 210mm !important;
     max-width: none !important;
-    min-height: 297mm !important;
+    aspect-ratio: unset !important;
     border: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;

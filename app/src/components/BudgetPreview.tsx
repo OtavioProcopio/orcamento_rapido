@@ -64,7 +64,7 @@ export const BudgetPreview = forwardRef<HTMLDivElement, BudgetPreviewProps>(
                 {profile.companyName || "Nome da empresa"}
               </h1>
               <p className="mt-1 font-medium text-slate-500">
-                Documento: {profile.document || "-"}
+                CPF/CNPJ: {profile.document || "-"}
               </p>
               <p className="font-medium text-slate-500">
                 Contato: {profile.phone || "-"}

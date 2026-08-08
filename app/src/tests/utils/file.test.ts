@@ -1,4 +1,44 @@
-import { fileToBase64 } from "../../utils/file";
+import {
+  fileToBase64,
+  validateLogoFile,
+  MAX_LOGO_SIZE_BYTES,
+} from "../../utils/file";
+
+describe("validateLogoFile", () => {
+  const makeFile = (type: string, size: number): File => {
+    const file = new File([new Uint8Array(size)], "logo", { type });
+    return file;
+  };
+
+  it("accepts png, jpeg, webp and svg within the size limit", () => {
+    for (const type of [
+      "image/png",
+      "image/jpeg",
+      "image/webp",
+      "image/svg+xml",
+    ]) {
+      expect(validateLogoFile(makeFile(type, 1000))).toBeNull();
+    }
+  });
+
+  it("rejects unsupported file types", () => {
+    expect(validateLogoFile(makeFile("application/pdf", 1000))).toBe(
+      "Formato não suportado. Envie PNG, JPG, WebP ou SVG.",
+    );
+  });
+
+  it("rejects files above the size limit", () => {
+    expect(
+      validateLogoFile(makeFile("image/png", MAX_LOGO_SIZE_BYTES + 1)),
+    ).toBe("Arquivo muito grande. O tamanho máximo é 1MB.");
+  });
+
+  it("accepts a file exactly at the size limit", () => {
+    expect(
+      validateLogoFile(makeFile("image/png", MAX_LOGO_SIZE_BYTES)),
+    ).toBeNull();
+  });
+});
 
 describe("fileToBase64", () => {
   it("converts file to base64", async () => {

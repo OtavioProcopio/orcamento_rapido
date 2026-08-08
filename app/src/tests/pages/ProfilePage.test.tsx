@@ -2,7 +2,7 @@ import { MemoryRouter } from "react-router-dom";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ProfilePage } from "../../pages/ProfilePage";
-import { fileToBase64 } from "../../utils/file";
+import { fileToBase64, validateLogoFile } from "../../utils/file";
 
 const PROFILE_KEY = "@OrcaRapido:mei_profile";
 const navigateMock = jest.fn();
@@ -18,6 +18,8 @@ jest.mock("react-router-dom", () => {
 
 jest.mock("../../utils/file", () => ({
   fileToBase64: jest.fn(() => "abc"),
+  validateLogoFile: jest.fn(() => null),
+  MAX_LOGO_SIZE_BYTES: 1_000_000,
 }));
 
 describe("ProfilePage", () => {
@@ -103,6 +105,39 @@ describe("ProfilePage", () => {
       "src",
       "abc",
     );
+  });
+
+  it("rejects a file that fails validation and shows the error instead of converting it", async () => {
+    // O atributo accept do input já filtra pelo seletor de arquivos do SO,
+    // então o userEvent.upload não dispara o onChange pra um tipo fora da
+    // lista (nem chegaria a chamar validateLogoFile). Um PNG grande demais
+    // passa pelo filtro de tipo e exercita a validação de tamanho de
+    // verdade, sem depender de mockar o retorno.
+    (validateLogoFile as jest.Mock).mockReturnValueOnce(
+      "Arquivo muito grande. O tamanho máximo é 1MB.",
+    );
+
+    render(
+      <MemoryRouter>
+        <ProfilePage />
+      </MemoryRouter>,
+    );
+    const input =
+      document.querySelector<HTMLInputElement>('input[type="file"]');
+    if (!input) {
+      throw new Error("File input not found");
+    }
+    const file = new File(["hello"], "hello.png", { type: "image/png" });
+    (fileToBase64 as jest.Mock).mockClear();
+    await userEvent.upload(input, file);
+
+    expect(
+      await screen.findByText("Arquivo muito grande. O tamanho máximo é 1MB."),
+    ).toBeInTheDocument();
+    expect(fileToBase64).not.toHaveBeenCalled();
+    expect(
+      screen.queryByAltText("Pré-visualização da logo"),
+    ).not.toBeInTheDocument();
   });
 
   it("clears the logo preview when the file selection is cancelled", async () => {

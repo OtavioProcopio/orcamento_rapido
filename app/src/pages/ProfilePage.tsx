@@ -5,7 +5,7 @@ import { ArrowLeft, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../hooks/useProfile";
 import type { MeiProfile } from "../types";
-import { fileToBase64 } from "../utils/file";
+import { fileToBase64, validateLogoFile } from "../utils/file";
 import { maskCpfCnpj } from "../utils/document";
 import { maskPhone, unmaskPhone } from "../utils/maskPhone";
 import { profileSchema, type ProfileFormValues } from "../utils/profileSchema";
@@ -32,6 +32,8 @@ export const ProfilePage = () => {
     handleSubmit,
     reset,
     setValue,
+    setError,
+    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -206,16 +208,18 @@ export const ProfilePage = () => {
                 Enviar imagem da logo
               </span>
               <span className="mt-2 text-sm text-slate-400">
-                PNG, JPG ou WebP. O arquivo será convertido e salvo localmente.
+                PNG, JPG, WebP ou SVG, até 1MB. O arquivo será convertido e
+                salvo localmente.
               </span>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
                 className="sr-only"
                 onChange={(event) => {
                   void (async () => {
                     const file = event.target.files?.[0];
                     if (!file) {
+                      clearErrors("logo");
                       setValue("logo", "", {
                         shouldDirty: true,
                         shouldValidate: true,
@@ -223,6 +227,17 @@ export const ProfilePage = () => {
                       return;
                     }
 
+                    const validationError = validateLogoFile(file);
+                    if (validationError) {
+                      setError("logo", {
+                        type: "manual",
+                        message: validationError,
+                      });
+                      event.target.value = "";
+                      return;
+                    }
+
+                    clearErrors("logo");
                     const base64 = await fileToBase64(file);
                     setValue("logo", base64, {
                       shouldDirty: true,
@@ -232,6 +247,12 @@ export const ProfilePage = () => {
                 }}
               />
             </label>
+
+            {errors.logo?.message ? (
+              <span className="mt-2 block text-xs text-rose-300">
+                {errors.logo.message}
+              </span>
+            ) : null}
 
             {logo ? (
               <div className="mt-4 rounded-[28px] border border-white/10 bg-slate-950/50 p-4">

@@ -1,8 +1,9 @@
 import { MemoryRouter } from "react-router-dom";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Budget } from "../../types";
 import { HomePage } from "../../pages/HomePage";
+import { printBudget } from "../../utils/printBudget";
 
 const clearBudgetsMock = jest.fn();
 const deleteBudgetMock = jest.fn();
@@ -26,20 +27,11 @@ jest.mock("../../hooks/useProfile", () => ({
   }),
 }));
 
-const triggerPrintMock = jest.fn();
-const printOptionsHolder: {
-  current: {
-    onAfterPrint?: () => void;
-    onPrintError?: () => void;
-  } | null;
-} = { current: null };
-
-jest.mock("react-to-print", () => ({
-  useReactToPrint: (options: (typeof printOptionsHolder)["current"]) => {
-    printOptionsHolder.current = options;
-    return triggerPrintMock;
-  },
+jest.mock("../../utils/printBudget", () => ({
+  printBudget: jest.fn(),
 }));
+
+const printBudgetMock = jest.mocked(printBudget);
 
 const makeBudget = (overrides: Partial<Budget> = {}): Budget => {
   const baseTotals = { subtotal: 0, discount: 0, total: 100 };
@@ -70,9 +62,8 @@ beforeEach(() => {
   budgets = [];
   clearBudgetsMock.mockClear();
   deleteBudgetMock.mockClear();
-  triggerPrintMock.mockClear();
-  printOptionsHolder.current = null;
   jest.clearAllMocks();
+  printBudgetMock.mockReturnValue(true);
 });
 
 afterEach(() => {
@@ -120,22 +111,21 @@ describe("HomePage", () => {
     expect(screen.getByText("Joao")).toBeInTheDocument();
   });
 
-  it("prints the saved budget using the preview component", async () => {
-    budgets = [
-      makeBudget({
-        id: "print-me",
-        client: { name: "Cliente Impressao" },
-        items: [
-          {
-            id: "item-print",
-            descricao: "Servico para imprimir",
-            quantidade: 1,
-            unidade: "UN",
-            valorUnitario: 100,
-          },
-        ],
-      }),
-    ];
+  it("opens the print window for the selected budget", async () => {
+    const budget = makeBudget({
+      id: "print-me",
+      client: { name: "Cliente Impressao" },
+      items: [
+        {
+          id: "item-print",
+          descricao: "Servico para imprimir",
+          quantidade: 1,
+          unidade: "UN",
+          valorUnitario: 100,
+        },
+      ],
+    });
+    budgets = [budget];
     const user = userEvent.setup();
     render(
       <MemoryRouter>
@@ -146,26 +136,20 @@ describe("HomePage", () => {
       screen.getByRole("button", { name: "Imprimir / Salvar PDF" }),
     );
 
-    expect(screen.getByText("Servico para imprimir")).toBeInTheDocument();
-    await waitFor(() => expect(triggerPrintMock).toHaveBeenCalled());
+    expect(printBudgetMock).toHaveBeenCalledWith(
+      budget,
+      expect.objectContaining({ companyName: "" }),
+    );
   });
 
-  it("shows a user-facing error when the print library reports a failure", async () => {
+  it("shows a user-facing error when the print window can't be opened", async () => {
     budgets = [
       makeBudget({
         id: "print-error",
         client: { name: "Cliente Impressao" },
-        items: [
-          {
-            id: "item-print",
-            descricao: "Servico para imprimir",
-            quantidade: 1,
-            unidade: "UN",
-            valorUnitario: 100,
-          },
-        ],
       }),
     ];
+    printBudgetMock.mockReturnValue(false);
     const user = userEvent.setup();
 
     render(
@@ -177,14 +161,11 @@ describe("HomePage", () => {
     await user.click(
       screen.getByRole("button", { name: "Imprimir / Salvar PDF" }),
     );
-    await waitFor(() => expect(triggerPrintMock).toHaveBeenCalled());
-
-    act(() => {
-      printOptionsHolder.current?.onPrintError?.();
-    });
 
     expect(
-      await screen.findByText("Não foi possível abrir a impressão deste orçamento."),
+      await screen.findByText(
+        "Não foi possível abrir a janela de impressão. Verifique se o navegador está bloqueando pop-ups.",
+      ),
     ).toBeInTheDocument();
   });
 

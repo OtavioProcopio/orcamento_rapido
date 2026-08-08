@@ -1,28 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useReactToPrint } from "react-to-print";
-import { BudgetPreview } from "../components/BudgetPreview";
 import { Button } from "../components/Button";
 import { ConfirmationDialog } from "../components/ConfirmationDialog";
 import { EmptyState } from "../components/EmptyState";
 import { useBudget } from "../hooks/useBudget";
 import { useProfile } from "../hooks/useProfile";
 import { formatCurrency, formatDate } from "../utils/format";
+import { printBudget as openBudgetPrintWindow } from "../utils/printBudget";
 import { buildBudgetWhatsAppShareUrl } from "../utils/whatsapp";
 import type { Budget } from "../types";
-
-const calculateValidityDays = (budget: Budget) => {
-  if (!budget.validUntil) {
-    return undefined;
-  }
-
-  const created = new Date(budget.createdAt).getTime();
-  const validUntil = new Date(budget.validUntil).getTime();
-  const dayMs = 24 * 60 * 60 * 1000;
-  const days = Math.round((validUntil - created) / dayMs);
-
-  return days > 0 ? days : undefined;
-};
 
 const getStatusLabel = (status: Budget["status"]) =>
   ({
@@ -43,9 +29,7 @@ export const HomePage = () => {
     deleteBudget,
   } = useBudget();
   const { profile } = useProfile();
-  const [printBudgetId, setPrintBudgetId] = useState<string | null>(null);
   const [printError, setPrintError] = useState<string | null>(null);
-  const printContentRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
   const [confirmation, setConfirmation] = useState<
     | { action: "delete"; budgetId: string; label: string }
@@ -60,11 +44,6 @@ export const HomePage = () => {
     pixKey: "",
     logo: undefined,
   };
-
-  const printBudget = useMemo(
-    () => budgets.find((item) => item.id === printBudgetId) ?? null,
-    [budgets, printBudgetId],
-  );
 
   const filteredBudgets = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -86,35 +65,22 @@ export const HomePage = () => {
     );
   }, [budgets, search]);
 
-  const triggerPrint = useReactToPrint({
-    contentRef: printContentRef,
-    documentTitle: printBudget
-      ? `orcamento-${printBudget.number}`
-      : "orcamento",
-    onAfterPrint: () => setPrintBudgetId(null),
-    onPrintError: () => {
-      setPrintBudgetId(null);
-      setPrintError("Não foi possível abrir a impressão deste orçamento.");
-    },
-  });
-
-  useEffect(() => {
-    if (!printBudget) {
-      return undefined;
+  const handlePrintBudget = (budgetId: string) => {
+    const budget = budgets.find((item) => item.id === budgetId);
+    if (!budget) {
+      return;
     }
 
-    // Espera o próximo tick pra garantir que o conteúdo referenciado já
-    // renderizou com os dados do orçamento selecionado antes de imprimir.
-    const timer = window.setTimeout(() => {
-      triggerPrint();
-    }, 50);
-
-    return () => window.clearTimeout(timer);
-  }, [printBudget, triggerPrint]);
-
-  const handlePrintBudget = (budgetId: string) => {
     setPrintError(null);
-    setPrintBudgetId(budgetId);
+    // Chamado de forma síncrona dentro do handler de clique: window.open
+    // precisa rodar no mesmo tick do gesto do usuário, senão o navegador
+    // trata como pop-up não solicitado e bloqueia.
+    const opened = openBudgetPrintWindow(budget, profileData);
+    if (!opened) {
+      setPrintError(
+        "Não foi possível abrir a janela de impressão. Verifique se o navegador está bloqueando pop-ups.",
+      );
+    }
   };
 
   const handleShareWhatsApp = (budget: Budget) => {
@@ -144,27 +110,6 @@ export const HomePage = () => {
     }
     setConfirmation(null);
   };
-
-  const printDocument = printBudget ? (
-    <div ref={printContentRef} className="print-source-area" aria-hidden="true">
-      <BudgetPreview
-        profile={profileData}
-        proposalNumber={printBudget.number}
-        createdAt={printBudget.createdAt}
-        validityDays={calculateValidityDays(printBudget)}
-        client={printBudget.client}
-        items={printBudget.items}
-        subtotal={printBudget.totals.subtotal}
-        discount={printBudget.totals.discount}
-        total={printBudget.totals.total}
-        showLogo={Boolean(profileData.logo)}
-        showSignature={printBudget.modules.showSignature}
-        showBanner={!printBudget.modules.removeAds}
-        paymentTerms={printBudget.paymentTerms}
-        terms={printBudget.modules.showTerms ? printBudget.terms : undefined}
-      />
-    </div>
-  ) : null;
 
   return (
     <>
@@ -405,7 +350,6 @@ export const HomePage = () => {
           )}
         </section>
       </div>
-      {printDocument}
       {confirmation ? (
         <ConfirmationDialog
           title={

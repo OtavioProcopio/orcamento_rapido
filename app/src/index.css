@@ -125,19 +125,12 @@ textarea {
   font-family: inherit;
 }
 
-/* Fica fora da tela: só existe como fonte de conteúdo pro react-to-print
-   clonar num iframe isolado (ver HomePage.tsx). Como a impressão roda num
-   documento à parte, não precisamos mais esconder o resto do app via CSS
-   de impressão — a técnica anterior ("visibility/display hidden em tudo
-   exceto isto") já se mostrou frágil demais entre navegadores/mobile. */
-.print-source-area {
-  position: fixed;
-  left: -10000px;
-  top: 0;
-  width: 210mm;
-  background: #ffffff;
-}
-
+/* A impressão roda numa janela própria e isolada (ver utils/printBudget.ts),
+   que só contém o preview do orçamento — nada mais no app precisa ser
+   escondido via CSS de impressão. As regras abaixo (tamanho A4, evitar
+   quebra de linha, repetir cabeçalho da tabela) ainda se aplicam porque
+   essa janela clona as folhas de estilo do documento principal, incluindo
+   esta. */
 @media print {
   @page {
     size: A4;

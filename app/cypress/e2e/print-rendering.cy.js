@@ -1,15 +1,14 @@
-// Regressão: window.print() sendo chamado (ou, hoje, o iframe de impressão
-// sendo criado) não prova que o PDF sai com conteúdo. Já tivemos dois bugs
-// reais aqui: primeiro o CSS escondia o app via `display: none` (motor de
-// impressão não recalculava a tempo pra conteúdo de portal → PDF em
-// branco), depois trocamos pra `visibility: hidden` e o #root (que não sai
-// do fluxo com visibility) empurrava o conteúdo pra uma segunda página em
-// branco. A impressão agora roda via react-to-print, que clona o conteúdo
-// num iframe isolado em vez de esconder o app inteiro — elimina essa
-// categoria de bug inteira, inclusive as diferenças de motor de impressão
-// entre desktop e mobile que a técnica anterior não sobrevivia.
+// Regressão: já tivemos TRÊS bugs reais de impressão saindo em branco nesta
+// mesma funcionalidade — CSS escondendo o app com display:none, depois com
+// visibility:hidden (que deixava uma segunda página fantasma), e por fim um
+// iframe isolado que funcionava no desktop mas o Safari/Chrome de celular
+// tem uma limitação conhecida de imprimir a página inteira por trás em vez
+// do conteúdo do iframe. A impressão agora abre uma janela/aba separada de
+// verdade (não um iframe) só com o conteúdo do orçamento — técnica clássica
+// que não sofre da limitação de iframe em mobile. Este teste verifica o
+// HTML escrito nessa janela, não apenas que algo foi "chamado".
 describe("Print rendering", () => {
-  it("keeps the source content correct and triggers the print iframe", () => {
+  it("writes exactly the preview content into the print window, with the banner always visible", () => {
     cy.seedProfile();
     cy.visit("/dashboard");
     cy.contains("Novo Orçamento").click();
@@ -17,23 +16,47 @@ describe("Print rendering", () => {
     cy.contains("Cliente Impressao Real").should("be.visible");
 
     cy.window().then((win) => {
-      cy.spy(win.document, "createElement").as("createElement");
+      const fakePrintWindow = {
+        document: {
+          open: cy.stub(),
+          write: cy.stub().as("printWrite"),
+          close: cy.stub(),
+        },
+        focus: cy.stub(),
+        print: cy.stub().as("printCall"),
+        addEventListener: cy.stub(),
+      };
+      cy.stub(win, "open").as("windowOpen").returns(fakePrintWindow);
     });
 
     cy.contains("Imprimir / Salvar PDF").click();
 
-    // O conteúdo que o react-to-print vai clonar pro iframe de impressão
-    // precisa estar correto e presente ANTES da impressão ser acionada —
-    // é essa fonte que a biblioteca copia, então validar aqui garante que
-    // o PDF resultante teria os dados certos.
-    cy.get(".print-source-area")
-      .should("exist")
-      .and(($el) => {
-        expect($el.text()).to.contain("Cliente Impressao Real");
-        expect($el.text()).to.contain("250,00");
-      });
+    cy.get("@windowOpen").should(
+      "have.been.calledWith",
+      "",
+      "_blank",
+      "noopener,noreferrer",
+    );
+    cy.get("@printWrite").should(($write) => {
+      const html = $write.args[0][0];
+      expect(html).to.contain("Cliente Impressao Real");
+      expect(html).to.contain("250,00");
+      expect(html).to.contain("Orçamento digital gratuito criado por");
+    });
 
-    // Confirma que o mecanismo de impressão (iframe isolado) foi acionado.
-    cy.get("@createElement").should("have.been.calledWith", "iframe");
+    // O react-to-print e as tentativas anteriores caíram exatamente aqui:
+    // "algo foi chamado" não prova que o conteúdo certo chegou na janela de
+    // impressão. Damos tempo pro setTimeout interno disparar o print real.
+    cy.wait(400);
+    cy.get("@printCall").should("have.been.called");
+  });
+
+  it("keeps the partner banner even when creating a budget with it previously removable", () => {
+    // O toggle de remover o banner não existe mais no formulário — o plano
+    // gratuito não permite desativá-lo.
+    cy.seedProfile();
+    cy.visit("/builder");
+    cy.contains("3. Configurações do Documento").click();
+    cy.contains("Banner de Parceria").should("not.exist");
   });
 });

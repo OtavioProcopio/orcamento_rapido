@@ -22,7 +22,7 @@ describe("useBudget", () => {
     status: "draft" as const,
     items: [],
     discount: 0,
-    modules: { showTerms: true, showSignature: true, removeAds: false },
+    modules: { showTerms: true, showSignature: true },
     totals: { subtotal: 0, discount: 0, total: 0 },
   };
 

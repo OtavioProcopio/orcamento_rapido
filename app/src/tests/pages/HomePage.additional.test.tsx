@@ -20,9 +20,9 @@ jest.mock("../../hooks/useBudget", () => ({
   }),
 }));
 
-jest.mock("../../hooks/useProfile", () => ({
-  useProfile: () => ({
-    profile: null,
+jest.mock("../../hooks/useProfiles", () => ({
+  useProfiles: () => ({
+    profiles: [],
     loading: false,
     error: null,
   }),
@@ -35,7 +35,7 @@ const makeBudget = (overrides: Partial<Budget> = {}): Budget => ({
   createdAt: "2026-05-09T00:00:00.000Z",
   client: { name: "Cliente Teste", ...overrides.client },
   items: [],
-  modules: { showTerms: true, showSignature: true, removeAds: false, ...overrides.modules },
+  modules: { showTerms: true, showSignature: true, ...overrides.modules },
   totals: { subtotal: 0, discount: 0, total: 100, ...overrides.totals },
   ...overrides,
 });

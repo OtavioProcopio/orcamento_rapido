@@ -9,12 +9,16 @@ const addBudgetMock = jest.fn();
 const updateBudgetMock = jest.fn();
 
 let budgets: Budget[] = [];
-let profile: MeiProfile | null = {
-  companyName: "Empresa QA",
-  userName: "Responsavel QA",
-  phone: "11999999999",
-  pixKey: "",
-};
+let profiles: MeiProfile[] = [
+  {
+    id: "profile-qa",
+    companyName: "Empresa QA",
+    userName: "Responsavel QA",
+    phone: "11999999999",
+    pixKey: "",
+    createdAt: new Date().toISOString(),
+  },
+];
 
 jest.mock("react-router-dom", () => {
   const actual: typeof import("react-router-dom") =
@@ -35,9 +39,9 @@ jest.mock("../../hooks/useBudget", () => ({
   }),
 }));
 
-jest.mock("../../hooks/useProfile", () => ({
-  useProfile: () => ({
-    profile,
+jest.mock("../../hooks/useProfiles", () => ({
+  useProfiles: () => ({
+    profiles,
     loading: false,
     error: null,
   }),
@@ -49,6 +53,7 @@ const existingBudget: Budget = {
   status: "sent",
   createdAt: "2026-05-01T12:00:00.000Z",
   validUntil: "2026-05-08T12:00:00.000Z",
+  profileId: "profile-qa",
   client: {
     name: "Cliente Existente",
     document: "529.982.247-25",
@@ -68,7 +73,7 @@ const existingBudget: Budget = {
   terms: "Garantia de 90 dias",
   paymentTerms: "PIX à vista",
   discount: 20,
-  modules: { showTerms: true, showSignature: true, removeAds: false },
+  modules: { showTerms: true, showSignature: true },
   totals: { subtotal: 120, discount: 20, total: 100 },
 };
 
@@ -82,12 +87,16 @@ const renderAt = (path: string) =>
 describe("BudgetPage edit/duplicate flows", () => {
   beforeEach(() => {
     budgets = [existingBudget];
-    profile = {
-      companyName: "Empresa QA",
-      userName: "Responsavel QA",
-      phone: "11999999999",
-      pixKey: "",
-    };
+    profiles = [
+      {
+        id: "profile-qa",
+        companyName: "Empresa QA",
+        userName: "Responsavel QA",
+        phone: "11999999999",
+        pixKey: "",
+        createdAt: new Date().toISOString(),
+      },
+    ];
     navigateMock.mockReset();
     addBudgetMock.mockReset();
     updateBudgetMock.mockReset();
@@ -129,7 +138,7 @@ describe("BudgetPage edit/duplicate flows", () => {
   });
 
   it("navigates to /profile from the missing-profile warning banner", async () => {
-    profile = null;
+    profiles = [];
     const user = userEvent.setup();
     renderAt("/builder");
 

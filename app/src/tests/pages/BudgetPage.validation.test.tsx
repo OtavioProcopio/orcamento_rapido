@@ -9,12 +9,16 @@ const addBudgetMock = jest.fn();
 const updateBudgetMock = jest.fn();
 
 let budgets: Budget[] = [];
-let profile: MeiProfile | null = {
-  companyName: "Empresa QA",
-  userName: "Responsavel QA",
-  phone: "11999999999",
-  pixKey: "",
-};
+let profiles: MeiProfile[] = [
+  {
+    id: "profile-qa",
+    companyName: "Empresa QA",
+    userName: "Responsavel QA",
+    phone: "11999999999",
+    pixKey: "",
+    createdAt: new Date().toISOString(),
+  },
+];
 
 jest.mock("react-router-dom", () => {
   const actual: typeof import("react-router-dom") =
@@ -35,9 +39,9 @@ jest.mock("../../hooks/useBudget", () => ({
   }),
 }));
 
-jest.mock("../../hooks/useProfile", () => ({
-  useProfile: () => ({
-    profile,
+jest.mock("../../hooks/useProfiles", () => ({
+  useProfiles: () => ({
+    profiles,
     loading: false,
     error: null,
   }),
@@ -66,12 +70,16 @@ const fillRequiredFields = async () => {
 describe("BudgetPage validation flows", () => {
   beforeEach(() => {
     budgets = [];
-    profile = {
-      companyName: "Empresa QA",
-      userName: "Responsavel QA",
-      phone: "11999999999",
-      pixKey: "",
-    };
+    profiles = [
+      {
+        id: "profile-qa",
+        companyName: "Empresa QA",
+        userName: "Responsavel QA",
+        phone: "11999999999",
+        pixKey: "",
+        createdAt: new Date().toISOString(),
+      },
+    ];
     navigateMock.mockReset();
     addBudgetMock.mockReset();
     updateBudgetMock.mockReset();
@@ -96,7 +104,7 @@ describe("BudgetPage validation flows", () => {
   });
 
   it("blocks saving when company profile is missing", async () => {
-    profile = null;
+    profiles = [];
     const user = userEvent.setup();
     renderPage();
 

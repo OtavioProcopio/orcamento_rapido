@@ -17,7 +17,7 @@
 // que usa Playwright justamente porque ele suporta abrir/inspecionar
 // janelas/abas de verdade, o que o Cypress não suporta.
 describe("Print rendering", () => {
-  it("writes exactly the preview content into the print window, with the banner always visible", () => {
+  it("writes exactly the preview content into the print window, with the default banner when no custom footer is set", () => {
     cy.seedProfile();
     cy.visit("/dashboard");
     cy.contains("Novo Orçamento").click();
@@ -55,12 +55,46 @@ describe("Print rendering", () => {
     cy.get("@printCall").should("have.been.called");
   });
 
-  it("keeps the partner banner even when creating a budget with it previously removable", () => {
-    // O toggle de remover o banner não existe mais no formulário — o plano
-    // gratuito não permite desativá-lo.
+  it("replaces the default banner with a custom footer when one is set", () => {
     cy.seedProfile();
     cy.visit("/builder");
+    cy.get("input[name='clientName']").type("Cliente Rodape Custom");
+    cy.contains("2. Itens e Valores").click();
+    cy.get("input[name='items.0.descricao']").type("Servico");
+    cy.get("input[name='items.0.valorUnitario']").clear().type("100");
+
     cy.contains("3. Configurações do Documento").click();
-    cy.contains("Banner de Parceria").should("not.exist");
+    cy.contains("Rodapé personalizado do PDF")
+      .parent()
+      .find("textarea")
+      .type("Feito à mão pela Empresa Seed");
+
+    cy.contains("Feito à mão pela Empresa Seed").should("be.visible");
+    cy.contains("Orçamento digital gratuito criado por").should("not.exist");
+
+    cy.contains("Salvar Orçamento").click();
+    cy.contains("Meu Painel", { timeout: 15000 }).should("be.visible");
+
+    cy.window().then((win) => {
+      const fakePrintWindow = {
+        document: {
+          open: cy.stub(),
+          write: cy.stub().as("printWriteCustomFooter"),
+          close: cy.stub(),
+        },
+        focus: cy.stub(),
+        print: cy.stub(),
+        addEventListener: cy.stub(),
+      };
+      cy.stub(win, "open").returns(fakePrintWindow);
+    });
+
+    cy.contains("Imprimir / Salvar PDF").click();
+
+    cy.get("@printWriteCustomFooter").should(($write) => {
+      const html = $write.args[0][0];
+      expect(html).to.contain("Feito à mão pela Empresa Seed");
+      expect(html).to.not.contain("Orçamento digital gratuito criado por");
+    });
   });
 });

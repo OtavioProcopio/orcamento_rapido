@@ -19,15 +19,17 @@ const baseBudget: Budget = {
       valorUnitario: 50,
     },
   ],
-  modules: { showTerms: true, showSignature: true, removeAds: true },
+  modules: { showTerms: true, showSignature: true },
   totals: { subtotal: 100, discount: 0, total: 100 },
 };
 
 const profile: MeiProfile = {
+  id: "profile-1",
   companyName: "Empresa Teste",
   userName: "Responsavel",
   phone: "11999999999",
   pixKey: "pix@teste.com",
+  createdAt: "2026-08-01T12:00:00.000Z",
 };
 
 class FakePrintWindow {
@@ -67,15 +69,26 @@ describe("printBudget utils", () => {
       expect(html).toContain("Orçamento digital gratuito criado por");
     });
 
-    it("shows the banner even when the budget has removeAds set", () => {
-      // O plano gratuito não permite remover o banner de apoio — a
-      // impressão sempre ignora modules.removeAds.
+    it("shows the default banner when the budget has no custom footerText", () => {
       const html = buildBudgetPrintHtml(
-        { ...baseBudget, modules: { ...baseBudget.modules, removeAds: true } },
+        { ...baseBudget, modules: { ...baseBudget.modules, footerText: undefined } },
         profile,
       );
 
       expect(html).toContain("Orçamento digital gratuito criado por");
+    });
+
+    it("shows the custom footerText instead of the default banner when set", () => {
+      const html = buildBudgetPrintHtml(
+        {
+          ...baseBudget,
+          modules: { ...baseBudget.modules, footerText: "Rodapé customizado" },
+        },
+        profile,
+      );
+
+      expect(html).toContain("Rodapé customizado");
+      expect(html).not.toContain("Orçamento digital gratuito criado por");
     });
 
     it("includes the validity window when validUntil is set", () => {

@@ -28,7 +28,9 @@ export function DataManagementPage() {
         alert("Não há orçamentos para exportar.");
         return;
       }
-      const backupStr = createBudgetBackup(data);
+      const clients = await storageAdapter.getClients();
+      const profiles = await storageAdapter.getProfiles();
+      const backupStr = createBudgetBackup(data, clients, profiles);
       const blob = new Blob([backupStr], { type: "application/json" });
       downloadBlob(blob, `orca-rapido-backup-${Date.now()}.json`);
     } catch {
@@ -77,9 +79,19 @@ export function DataManagementPage() {
     reader.onload = async (event) => {
       try {
         const text = event.target?.result as string;
-        const parsedBudgets = parseBudgetBackup(text);
+        const {
+          budgets: parsedBudgets,
+          clients: parsedClients,
+          profiles: parsedProfiles,
+        } = parseBudgetBackup(text);
 
         await storageAdapter.saveBudgets(parsedBudgets);
+        if (parsedClients) {
+          await storageAdapter.saveClients(parsedClients);
+        }
+        if (parsedProfiles) {
+          await storageAdapter.saveProfiles(parsedProfiles);
+        }
         setImportStatus({
           message:
             "Importação realizada com sucesso! " +

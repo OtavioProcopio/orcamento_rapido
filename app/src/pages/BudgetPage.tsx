@@ -8,13 +8,13 @@ import {
   Save,
 } from "lucide-react";
 import { useBudget } from "../hooks/useBudget";
-import { useProfile } from "../hooks/useProfile";
+import { useClients } from "../hooks/useClients";
+import { useProfiles } from "../hooks/useProfiles";
 import { BudgetPreview } from "../components/BudgetPreview";
-import type { Budget, BudgetClient, BudgetItem } from "../types";
+import type { Budget, BudgetClient, BudgetItem, Client, MeiProfile } from "../types";
 import { budgetSchema } from "../utils/budgetSchema";
 import { maskCpfCnpj } from "../utils/document";
 import { maskPhone } from "../utils/maskPhone";
-import { profileSchema } from "../utils/profileSchema";
 
 const formatCurrency = (value: number, currency: string = "BRL") => {
   return value.toLocaleString("pt-BR", { style: "currency", currency });
@@ -97,7 +97,11 @@ function Toggle({
 export function BudgetPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { profile, loading: profileLoading, error: profileError } = useProfile();
+  const {
+    profiles,
+    loading: profilesLoading,
+    error: profilesError,
+  } = useProfiles();
   const {
     budgets,
     loading: budgetsLoading,
@@ -105,7 +109,9 @@ export function BudgetPage() {
     addBudget,
     updateBudget,
   } = useBudget();
+  const { clients, addClient } = useClients();
   const initializedFromUrl = useRef(false);
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
 
   const [proposalData, setProposalData] = useState({
     number: "",
@@ -117,7 +123,12 @@ export function BudgetPage() {
     address: "",
     email: "",
     phone: "",
+    clientId: undefined,
   });
+  const [clientSuggestionField, setClientSuggestionField] = useState<
+    "name" | "document" | null
+  >(null);
+  const [saveAsNewClient, setSaveAsNewClient] = useState(false);
 
   const [items, setItems] = useState<BudgetItem[]>([
     {
@@ -142,6 +153,7 @@ export function BudgetPage() {
       texto: "",
     },
     assinatura: true,
+    footerText: "",
     status: "draft" as Budget["status"],
   });
 
@@ -176,20 +188,40 @@ export function BudgetPage() {
 
   const mockDate = new Date();
 
-  const currentProfile = profile || {
+  const selectedProfile = useMemo(
+    () => profiles.find((profile) => profile.id === selectedProfileId) ?? null,
+    [profiles, selectedProfileId],
+  );
+  const currentProfile: MeiProfile = selectedProfile ?? {
+    id: "",
     companyName: "",
     document: "",
     phone: "",
     userName: "",
     logo: "",
     pixKey: "",
+    createdAt: "",
   };
-  const isProfileReady = useMemo(
-    () => Boolean(profile && profileSchema.safeParse(profile).success),
-    [profile],
-  );
+  const hasAnyProfile = profiles.length > 0;
   const profileRequiredMessage =
     "Cadastre os dados da sua empresa em Perfil antes de salvar um orçamento.";
+  const profileSelectionRequiredMessage =
+    "Selecione a empresa emissora deste orçamento antes de salvar.";
+
+  // Só pré-seleciona automaticamente quando existe exatamente 1 empresa —
+  // não há escolha real a fazer nesse caso. Com 2+ empresas, exige escolha
+  // explícita (evita emitir sob o nome errado por engano). Orçamento em
+  // edição/duplicação é tratado à parte, usando o profileId salvo nele.
+  // Ajuste de estado durante a renderização (não em efeito): React re-executa
+  // o componente antes de pintar a tela, e a própria condição (checando
+  // selectedProfileId) impede loop, já que na re-renderização ela deixa de
+  // ser verdadeira.
+  const hasBudgetSource = Boolean(
+    searchParams.get("edit") || searchParams.get("duplicate"),
+  );
+  if (!hasBudgetSource && !selectedProfileId && profiles.length === 1) {
+    setSelectedProfileId(profiles[0].id);
+  }
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -214,6 +246,7 @@ export function BudgetPage() {
 
       initializedFromUrl.current = true;
       setSavedBudgetId(editId ? sourceBudget.id : null);
+      setSelectedProfileId(sourceBudget.profileId ?? null);
       setProposalData({
         number: duplicateId
           ? String(suggestedProposalNumber)
@@ -249,8 +282,10 @@ export function BudgetPage() {
           texto: sourceBudget.terms ?? "",
         },
         assinatura: sourceBudget.modules.showSignature,
+        footerText: sourceBudget.modules.footerText ?? "",
         status: sourceBudget.status,
       });
+      setSaveAsNewClient(false);
       setIsDirty(false);
     }, 0);
 
@@ -298,7 +333,58 @@ export function BudgetPage() {
   const handleClientChange = (field: keyof BudgetClient, value: string) => {
     setFormErrors((prev) => ({ ...prev, [`client.${field}`]: "" }));
     setIsDirty(true);
-    setClientData((prev) => ({ ...prev, [field]: value }));
+    setClientData((prev) => ({
+      ...prev,
+      [field]: value,
+      // Editar nome/documento à mão desvincula do cadastro selecionado —
+      // não dá pra garantir que os dados ainda batem com aquele registro.
+      clientId:
+        field === "name" || field === "document" ? undefined : prev.clientId,
+    }));
+    if (field === "name" || field === "document") {
+      setClientSuggestionField(field);
+    }
+  };
+
+  const clientNameSuggestions = useMemo(() => {
+    const term = clientData.name.trim().toLowerCase();
+    if (!term) {
+      return [];
+    }
+    return clients
+      .filter((client) => client.name.toLowerCase().includes(term))
+      .slice(0, 5);
+  }, [clients, clientData.name]);
+
+  const clientDocumentSuggestions = useMemo(() => {
+    const term = (clientData.document ?? "").replace(/\D/g, "");
+    if (!term) {
+      return [];
+    }
+    return clients
+      .filter((client) => (client.document ?? "").replace(/\D/g, "").includes(term))
+      .slice(0, 5);
+  }, [clients, clientData.document]);
+
+  const handleSelectClient = (client: Client) => {
+    setFormErrors((prev) => ({ ...prev, "client.name": "", "client.document": "" }));
+    setIsDirty(true);
+    setClientData({
+      name: client.name,
+      document: client.document ?? "",
+      address: client.address ?? "",
+      email: client.email ?? "",
+      phone: client.phone ? maskPhone(client.phone) : "",
+      clientId: client.id,
+    });
+    setSaveAsNewClient(false);
+    setClientSuggestionField(null);
+  };
+
+  const closeClientSuggestions = (field: "name" | "document") => {
+    window.setTimeout(() => {
+      setClientSuggestionField((current) => (current === field ? null : current));
+    }, 150);
   };
 
   const handleConfigChange = (nextConfig: typeof config) => {
@@ -387,6 +473,7 @@ export function BudgetPage() {
             Date.now() + config.validade.dias * 24 * 60 * 60 * 1000,
           ).toISOString()
         : undefined,
+      profileId: selectedProfileId ?? undefined,
       client: clientData,
       items,
       terms: config.observacoes.ativo ? config.observacoes.texto : undefined,
@@ -397,8 +484,7 @@ export function BudgetPage() {
       modules: {
         showTerms: config.observacoes.ativo,
         showSignature: config.assinatura,
-        // O banner de apoio não pode ser removido no plano gratuito.
-        removeAds: false,
+        footerText: config.footerText.trim() ? config.footerText : undefined,
       },
       totals: {
         subtotal,
@@ -409,7 +495,29 @@ export function BudgetPage() {
   };
 
   const ensureSavedBudget = async (patch?: Partial<Budget>) => {
-    const budget = { ...buildBudgetPayload(), ...patch };
+    let effectiveClientData = clientData;
+
+    if (saveAsNewClient && !clientData.clientId && clientData.name.trim()) {
+      const newClient: Client = {
+        id: crypto.randomUUID(),
+        name: clientData.name.trim(),
+        document: clientData.document || undefined,
+        address: clientData.address || undefined,
+        email: clientData.email || undefined,
+        phone: clientData.phone || undefined,
+        createdAt: new Date().toISOString(),
+      };
+      await addClient(newClient);
+      effectiveClientData = { ...clientData, clientId: newClient.id };
+      setClientData(effectiveClientData);
+      setSaveAsNewClient(false);
+    }
+
+    const budget = {
+      ...buildBudgetPayload(),
+      client: effectiveClientData,
+      ...patch,
+    };
 
     if (savedBudgetId) {
       await updateBudget(savedBudgetId, budget);
@@ -422,8 +530,18 @@ export function BudgetPage() {
   };
 
   const handleSaveDraft = async () => {
-    if (!isProfileReady) {
+    if (!hasAnyProfile) {
       setSubmitError(profileRequiredMessage);
+      return;
+    }
+
+    if (!selectedProfileId) {
+      setSubmitError(profileSelectionRequiredMessage);
+      setFormErrors((prev) => ({
+        ...prev,
+        profileId: profileSelectionRequiredMessage,
+      }));
+      setOpenAccordion("client");
       return;
     }
 
@@ -461,13 +579,13 @@ export function BudgetPage() {
           </h2>
         </div>
         <div className="flex items-center gap-3">
-          {isProfileReady ? (
+          {hasAnyProfile ? (
             <button
               type="button"
               onClick={() => {
                 void handleSaveDraft();
               }}
-              disabled={saving || budgetsLoading || profileLoading}
+              disabled={saving || budgetsLoading || profilesLoading}
               className="flex items-center gap-2 rounded-xl bg-blue-500 px-5 py-2 font-bold text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Save size={18} /> {saving ? "Salvando..." : "Salvar Orçamento"}
@@ -478,7 +596,7 @@ export function BudgetPage() {
               onClick={() => {
                 void navigate("/profile");
               }}
-              disabled={profileLoading}
+              disabled={profilesLoading}
               className="flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2 font-bold text-slate-950 shadow-sm shadow-amber-500/20 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Save size={18} /> Cadastrar Empresa
@@ -492,17 +610,17 @@ export function BudgetPage() {
         {/* Lado Esquerdo (Controles - 5 colunas) */}
         <aside className="custom-scrollbar overflow-y-auto border-r border-white/10 bg-slate-950 p-6 lg:col-span-5">
           <div className="max-w-xl mx-auto flex flex-col space-y-2">
-            {submitError || budgetsError || profileError ? (
+            {submitError || budgetsError || profilesError ? (
               <div className="mb-4 rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-                {submitError || budgetsError || profileError}
+                {submitError || budgetsError || profilesError}
               </div>
             ) : null}
-            {profileLoading || budgetsLoading ? (
+            {profilesLoading || budgetsLoading ? (
               <div className="mb-4 rounded-xl border border-white/10 bg-white/4 px-4 py-3 text-sm text-slate-300">
                 Carregando dados locais...
               </div>
             ) : null}
-            {!profileLoading && !isProfileReady ? (
+            {!profilesLoading && !hasAnyProfile ? (
               <div className="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <span>{profileRequiredMessage}</span>
@@ -526,6 +644,41 @@ export function BudgetPage() {
               }
             >
               <div className="flex flex-col gap-5 text-sm font-medium">
+                {hasAnyProfile ? (
+                  <label className="flex flex-col gap-1.5 transition-colors focus-within:text-blue-300">
+                    <span className="font-semibold text-slate-300">
+                      Empresa Emissora <span className="text-red-500">*</span>
+                    </span>
+                    <select
+                      name="profileId"
+                      value={selectedProfileId ?? ""}
+                      onChange={(e) => {
+                        const value = e.target.value || null;
+                        setSelectedProfileId(value);
+                        setIsDirty(true);
+                        setFormErrors((prev) => ({ ...prev, profileId: "" }));
+                      }}
+                      className={`rounded-xl border bg-slate-950 px-3 py-2.5 text-slate-100 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 ${
+                        formErrors.profileId
+                          ? "border-rose-400"
+                          : "border-white/10"
+                      }`}
+                    >
+                      <option value="">Selecione a empresa</option>
+                      {profiles.map((profile) => (
+                        <option key={profile.id} value={profile.id}>
+                          {profile.companyName}
+                        </option>
+                      ))}
+                    </select>
+                    {formErrors.profileId ? (
+                      <span className="text-xs text-rose-300">
+                        {formErrors.profileId}
+                      </span>
+                    ) : null}
+                  </label>
+                ) : null}
+
                 <label className="flex flex-col gap-1.5 transition-colors focus-within:text-blue-300">
                   <span className="font-semibold text-slate-300">
                     Nº do Orçamento
@@ -544,15 +697,18 @@ export function BudgetPage() {
 
                 <hr className="border-white/10" />
 
-                <label className="flex flex-col gap-1.5 transition-colors focus-within:text-blue-300">
+                <label className="relative flex flex-col gap-1.5 transition-colors focus-within:text-blue-300">
                   <span className="font-semibold text-slate-300">
                     Nome do Cliente <span className="text-red-500">*</span>
                   </span>
                   <input
                     name="clientName"
                     type="text"
+                    autoComplete="off"
                     value={clientData.name}
                     onChange={(e) => handleClientChange("name", e.target.value)}
+                    onFocus={() => setClientSuggestionField("name")}
+                    onBlur={() => closeClientSuggestions("name")}
                     className={`rounded-xl border bg-slate-950 px-3 py-2.5 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 ${
                       formErrors["client.name"]
                         ? "border-rose-400"
@@ -565,18 +721,43 @@ export function BudgetPage() {
                       {formErrors["client.name"]}
                     </span>
                   ) : null}
+                  {clientSuggestionField === "name" &&
+                  clientNameSuggestions.length > 0 ? (
+                    <ul className="absolute top-full z-10 mt-1 w-full overflow-hidden rounded-xl border border-white/10 bg-slate-900 shadow-xl">
+                      {clientNameSuggestions.map((client) => (
+                        <li key={client.id}>
+                          <button
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => handleSelectClient(client)}
+                            className="flex w-full flex-col px-3 py-2 text-left text-sm text-slate-200 transition hover:bg-white/5"
+                          >
+                            <span className="font-medium">{client.name}</span>
+                            {client.document ? (
+                              <span className="text-xs text-slate-500">
+                                {client.document}
+                              </span>
+                            ) : null}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </label>
-                <label className="flex flex-col gap-1.5 transition-colors focus-within:text-blue-300">
+                <label className="relative flex flex-col gap-1.5 transition-colors focus-within:text-blue-300">
                   <span className="font-semibold text-slate-300">
                     CPF / CNPJ
                   </span>
                   <input
                     name="clientDocument"
                     type="text"
+                    autoComplete="off"
                     value={clientData.document || ""}
                     onChange={(e) =>
                       handleClientChange("document", maskCpfCnpj(e.target.value))
                     }
+                    onFocus={() => setClientSuggestionField("document")}
+                    onBlur={() => closeClientSuggestions("document")}
                     className={`rounded-xl border bg-slate-950 px-3 py-2.5 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 ${
                       formErrors["client.document"]
                         ? "border-rose-400"
@@ -589,7 +770,43 @@ export function BudgetPage() {
                       {formErrors["client.document"]}
                     </span>
                   ) : null}
+                  {clientSuggestionField === "document" &&
+                  clientDocumentSuggestions.length > 0 ? (
+                    <ul className="absolute top-full z-10 mt-1 w-full overflow-hidden rounded-xl border border-white/10 bg-slate-900 shadow-xl">
+                      {clientDocumentSuggestions.map((client) => (
+                        <li key={client.id}>
+                          <button
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => handleSelectClient(client)}
+                            className="flex w-full flex-col px-3 py-2 text-left text-sm text-slate-200 transition hover:bg-white/5"
+                          >
+                            <span className="font-medium">{client.name}</span>
+                            <span className="text-xs text-slate-500">
+                              {client.document}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </label>
+                {clientData.clientId ? (
+                  <p className="text-xs text-emerald-300">
+                    Vinculado ao cliente cadastrado. Edite nome ou documento
+                    para desvincular.
+                  </p>
+                ) : clientData.name.trim() ? (
+                  <label className="flex items-center gap-2 text-sm text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={saveAsNewClient}
+                      onChange={(e) => setSaveAsNewClient(e.target.checked)}
+                      className="h-4 w-4 rounded border-white/20 bg-slate-950"
+                    />
+                    Cadastrar este cliente para reaproveitar depois
+                  </label>
+                ) : null}
                 <label className="flex flex-col gap-1.5 transition-colors focus-within:text-blue-300">
                   <span className="font-semibold text-slate-300">
                     Email do Cliente
@@ -1021,6 +1238,30 @@ export function BudgetPage() {
                   checked={config.assinatura}
                   onChange={(c) => handleConfigChange({ ...config, assinatura: c })}
                 />
+
+                <hr className="my-1 border-white/10" />
+
+                <label className="flex flex-col gap-1.5 text-sm">
+                  <span className="font-semibold text-slate-300">
+                    Rodapé personalizado do PDF
+                  </span>
+                  <textarea
+                    rows={2}
+                    value={config.footerText}
+                    onChange={(e) =>
+                      handleConfigChange({
+                        ...config,
+                        footerText: e.target.value,
+                      })
+                    }
+                    className="w-full resize-none rounded-lg border border-white/10 bg-slate-950 p-2 text-slate-100 outline-none focus:ring-blue-500"
+                    placeholder="Deixe em branco para manter o rodapé padrão do Orça Rápido."
+                  />
+                  <span className="text-xs text-slate-500">
+                    Vazio: mostra o rodapé padrão de apoio ao projeto.
+                    Preenchido: substitui pelo seu texto neste orçamento.
+                  </span>
+                </label>
               </div>
             </AccordionItem>
           </div>
@@ -1045,7 +1286,7 @@ export function BudgetPage() {
               total={total > 0 ? total : 0}
               showLogo={config.exibirLogo}
               showSignature={config.assinatura}
-              showBanner
+              footerText={config.footerText.trim() || undefined}
               paymentTerms={
                 config.condicoesPagamento.ativo
                   ? config.condicoesPagamento.texto

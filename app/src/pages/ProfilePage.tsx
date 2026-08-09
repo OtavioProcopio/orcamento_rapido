@@ -1,9 +1,14 @@
-import { useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Upload } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useProfile } from "../hooks/useProfile";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "../components/Button";
+import { ConfirmationDialog } from "../components/ConfirmationDialog";
+import { EmptyState } from "../components/EmptyState";
+import { PageHeader } from "../components/PageHeader";
+import { useBudget } from "../hooks/useBudget";
+import { useProfiles } from "../hooks/useProfiles";
 import type { MeiProfile } from "../types";
 import { fileToBase64, validateLogoFile } from "../utils/file";
 import { maskCpfCnpj } from "../utils/document";
@@ -24,7 +29,14 @@ const fieldClassName =
 
 export const ProfilePage = () => {
   const navigate = useNavigate();
-  const { profile, saveProfile, saved, loading, error } = useProfile();
+  const { profiles, loading, error, addProfile, updateProfile, deleteProfile } =
+    useProfiles();
+  const { budgets } = useBudget();
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingProfile, setEditingProfile] = useState<MeiProfile | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<
+    { id: string; label: string } | null
+  >(null);
 
   const {
     register,
@@ -40,11 +52,16 @@ export const ProfilePage = () => {
     defaultValues: DEFAULT_VALUES,
   });
 
-  useEffect(() => {
-    if (!profile) {
-      return;
-    }
+  const logo = useWatch({ control, name: "logo", defaultValue: "" });
 
+  const openCreateForm = () => {
+    setEditingProfile(null);
+    reset(DEFAULT_VALUES);
+    setFormOpen(true);
+  };
+
+  const openEditForm = (profile: MeiProfile) => {
+    setEditingProfile(profile);
     reset({
       companyName: profile.companyName,
       document: profile.document ?? "",
@@ -53,12 +70,16 @@ export const ProfilePage = () => {
       pixKey: profile.pixKey,
       logo: profile.logo ?? "",
     });
-  }, [profile, reset]);
+    setFormOpen(true);
+  };
 
-  const logo = useWatch({ control, name: "logo", defaultValue: "" });
+  const closeForm = () => {
+    setFormOpen(false);
+    setEditingProfile(null);
+  };
 
   const onSubmit = async (values: ProfileFormValues) => {
-    const nextProfile: MeiProfile = {
+    const patch = {
       companyName: values.companyName,
       document: values.document || undefined,
       userName: values.userName,
@@ -67,48 +88,77 @@ export const ProfilePage = () => {
       logo: values.logo || undefined,
     };
 
-    await saveProfile(nextProfile);
+    if (editingProfile) {
+      await updateProfile(editingProfile.id, patch);
+    } else {
+      await addProfile({
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        ...patch,
+      });
+    }
+
+    closeForm();
   };
 
-  return (
-    <div className="mx-auto max-w-3xl p-4 md:p-6">
-      <div className="overflow-hidden rounded-4xl border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[0_30px_80px_rgba(2,6,23,0.35)]">
-        <div className="border-b border-white/10 px-6 py-5 md:px-8">
-          <button
-            type="button"
-            onClick={() => {
-              void navigate("/dashboard");
-            }}
-            className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/4 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/8"
-          >
-            <ArrowLeft size={16} />
-            Voltar
-          </button>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-blue-200/80">
-            Perfil
-          </p>
-          <h1 className="mt-2 text-3xl font-bold text-white">
-            Dados usados nos orçamentos
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-400">
-            Preencha as informações da sua empresa para personalizar o PDF com
-            nome, contato, chave PIX e identidade visual.
-          </p>
-          {loading ? (
-            <p className="mt-3 text-sm text-slate-400">Carregando perfil...</p>
-          ) : null}
-          {error ? (
-            <p className="mt-3 text-sm text-rose-300">{error}</p>
-          ) : null}
-        </div>
+  const handleDeleteProfile = (profile: MeiProfile) => {
+    setConfirmDelete({ id: profile.id, label: profile.companyName });
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!confirmDelete) {
+      return;
+    }
+    await deleteProfile(confirmDelete.id);
+    setConfirmDelete(null);
+  };
+
+  const budgetCountByProfile = useMemo(() => {
+    const counts = new Map<string, number>();
+    budgets.forEach((budget) => {
+      if (!budget.profileId) {
+        return;
+      }
+      counts.set(budget.profileId, (counts.get(budget.profileId) ?? 0) + 1);
+    });
+    return counts;
+  }, [budgets]);
+
+  return (
+    <div className="mx-auto max-w-4xl px-4 py-8 md:px-6 lg:px-8">
+      <button
+        type="button"
+        onClick={() => {
+          void navigate("/dashboard");
+        }}
+        className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/4 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/8"
+      >
+        <ArrowLeft size={16} />
+        Voltar
+      </button>
+
+      <PageHeader
+        title="Empresas"
+        subtitle="Cadastre uma ou mais empresas/perfis. No Construtor de Orçamento você escolhe qual empresa emite cada orçamento."
+        actions={<Button onClick={openCreateForm}>Nova Empresa</Button>}
+      />
+
+      {error ? <p className="mt-4 text-sm text-rose-300">{error}</p> : null}
+      {loading ? (
+        <p className="mt-4 text-sm text-slate-400">Carregando empresas...</p>
+      ) : null}
+
+      {formOpen ? (
         <form
           onSubmit={(event) => {
             void handleSubmit(onSubmit)(event);
           }}
-          className="px-6 py-6 md:px-8"
+          className="mt-6 rounded-[28px] border border-white/10 bg-white/4 p-6"
         >
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <h2 className="text-lg font-semibold text-white">
+            {editingProfile ? "Editar empresa" : "Nova empresa"}
+          </h2>
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <label className="text-sm font-medium text-slate-300">
               Nome da Empresa
               <input
@@ -256,9 +306,9 @@ export const ProfilePage = () => {
 
             {logo ? (
               <div className="mt-4 rounded-[28px] border border-white/10 bg-slate-950/50 p-4">
-              <p className="mb-3 text-sm font-medium text-slate-300">
-                Preview da logo
-              </p>
+                <p className="mb-3 text-sm font-medium text-slate-300">
+                  Preview da logo
+                </p>
                 <img
                   src={logo}
                   alt="Pré-visualização da logo"
@@ -268,20 +318,107 @@ export const ProfilePage = () => {
             ) : null}
           </div>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-h-6 text-sm text-emerald-300">
-              {saved ? "Salvo com sucesso." : ""}
-            </div>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex items-center justify-center rounded-2xl bg-blue-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Salvar Perfil
-            </button>
+          <div className="mt-6 flex justify-end gap-3">
+            <Button variant="ghost" onClick={closeForm}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {editingProfile ? "Salvar alterações" : "Cadastrar empresa"}
+            </Button>
           </div>
         </form>
+      ) : null}
+
+      <div className="mt-8">
+        {profiles.length === 0 ? (
+          <div className="rounded-[28px] border border-dashed border-white/10 bg-white/3 p-3">
+            <EmptyState
+              title="Nenhuma empresa cadastrada"
+              description="Cadastre os dados da sua empresa para começar a emitir orçamentos."
+              action={
+                <Button onClick={openCreateForm}>Cadastrar Empresa</Button>
+              }
+            />
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {profiles.map((profile) => {
+              const budgetCount = budgetCountByProfile.get(profile.id) ?? 0;
+              return (
+                <article
+                  key={profile.id}
+                  className="rounded-[28px] border border-white/10 bg-white/4 p-5 shadow-[0_20px_50px_rgba(2,6,23,0.25)] transition hover:border-white/15 hover:bg-white/6"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-4">
+                      {profile.logo ? (
+                        <img
+                          src={profile.logo}
+                          alt={`Logo de ${profile.companyName}`}
+                          className="h-12 w-12 shrink-0 rounded-xl border border-white/10 bg-white object-contain p-1"
+                        />
+                      ) : null}
+                      <div>
+                        <h2 className="text-xl font-semibold text-white">
+                          {profile.companyName}
+                        </h2>
+                        <p className="text-sm text-slate-400">
+                          {profile.userName}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-semibold text-cyan-200">
+                      {budgetCount} orçamento{budgetCount === 1 ? "" : "s"}
+                    </span>
+                  </div>
+
+                  <dl className="mt-4 grid gap-1 text-sm text-slate-300">
+                    {profile.document ? (
+                      <span>CPF/CNPJ: {profile.document}</span>
+                    ) : null}
+                    <span>Telefone: {maskPhone(profile.phone)}</span>
+                    {profile.pixKey ? <span>Pix: {profile.pixKey}</span> : null}
+                  </dl>
+
+                  <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+                    <Link
+                      to={`/dashboard?profileId=${profile.id}`}
+                      className="text-sm font-medium text-blue-300 underline-offset-4 hover:underline"
+                    >
+                      Ver orçamentos
+                    </Link>
+                    <div className="flex gap-3">
+                      <Button
+                        variant="secondary"
+                        onClick={() => openEditForm(profile)}
+                      >
+                        Editar
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleDeleteProfile(profile)}
+                      >
+                        Excluir
+                      </Button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      {confirmDelete ? (
+        <ConfirmationDialog
+          title="Excluir empresa"
+          description={`Excluir a empresa ${confirmDelete.label}? Orçamentos já emitidos por ela continuam salvos no histórico.`}
+          onCancel={() => setConfirmDelete(null)}
+          onConfirm={() => {
+            void handleConfirmDelete();
+          }}
+        />
+      ) : null}
     </div>
   );
 };

@@ -1,5 +1,12 @@
 import { createBudgetBackup, createBudgetCsv, parseBudgetBackup } from "../../utils/backup";
-import type { Budget } from "../../types";
+import type { Budget, Client } from "../../types";
+
+const client: Client = {
+  id: "client-1",
+  name: "Cliente Cadastrado",
+  document: "529.982.247-25",
+  createdAt: "2026-05-07T00:00:00.000Z",
+};
 
 const budget: Budget = {
   id: "budget-1",
@@ -13,7 +20,7 @@ const budget: Budget = {
     phone: "(11) 99999-9999",
   },
   items: [],
-  modules: { showTerms: true, showSignature: true, removeAds: false },
+  modules: { showTerms: true, showSignature: true },
   totals: { subtotal: 100, discount: 10, total: 90 },
 };
 
@@ -21,7 +28,7 @@ describe("backup", () => {
   it("creates and parses JSON backups", () => {
     const content = createBudgetBackup([budget]);
 
-    expect(parseBudgetBackup(content)[0]).toMatchObject({
+    expect(parseBudgetBackup(content).budgets[0]).toMatchObject({
       id: "budget-1",
       status: "approved",
       client: {
@@ -30,6 +37,24 @@ describe("backup", () => {
       },
       totals: { subtotal: 100, discount: 10, total: 90 },
     });
+  });
+
+  it("round-trips clients alongside budgets", () => {
+    const content = createBudgetBackup([budget], [client]);
+
+    const parsed = parseBudgetBackup(content);
+    expect(parsed.clients).toMatchObject([{ id: "client-1", name: "Cliente Cadastrado" }]);
+  });
+
+  it("leaves clients undefined when the backup predates the clients field", () => {
+    const legacyContent = JSON.stringify({
+      app: "orca-rapido",
+      version: 1,
+      exportedAt: "2026-05-07T00:00:00.000Z",
+      budgets: [budget],
+    });
+
+    expect(parseBudgetBackup(legacyContent).clients).toBeUndefined();
   });
 
   it("creates CSV exports", () => {
@@ -51,16 +76,17 @@ describe("backup", () => {
   });
 
   it("accepts an empty backup with no budgets", () => {
-    expect(parseBudgetBackup('{"budgets":[]}')).toEqual([]);
+    expect(parseBudgetBackup('{"budgets":[]}').budgets).toEqual([]);
   });
 
   it("accepts a raw array backup without the wrapper object", () => {
     const content = createBudgetBackup([budget]);
     const rawArray = JSON.parse(content).budgets;
 
-    expect(parseBudgetBackup(JSON.stringify(rawArray))[0]).toMatchObject({
+    expect(parseBudgetBackup(JSON.stringify(rawArray)).budgets[0]).toMatchObject({
       id: "budget-1",
     });
+    expect(parseBudgetBackup(JSON.stringify(rawArray)).clients).toBeUndefined();
   });
 
   it("escapes CSV cells for budgets without optional client fields", () => {

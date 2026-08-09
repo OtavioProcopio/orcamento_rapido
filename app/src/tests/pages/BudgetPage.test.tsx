@@ -105,7 +105,6 @@ describe("BudgetPage", () => {
       modules: {
         showTerms: true,
         showSignature: false,
-        removeAds: false,
       },
       totals: {
         subtotal: 50,
@@ -305,5 +304,295 @@ describe("BudgetPage", () => {
     const budgets = JSON.parse(localStorage.getItem("@OrcaRapido:budgets") || "[]");
     expect(budgets).toHaveLength(1);
     expect(budgets[0].client.name).toBe("Cliente atualizado");
+  });
+
+  it("autocompletes client fields from a registered client and links clientId", async () => {
+    localStorage.setItem(
+      "@OrcaRapido:clients",
+      JSON.stringify([
+        {
+          id: "client-1",
+          name: "Maria Cadastrada",
+          document: "529.982.247-25",
+          email: "maria@cliente.com",
+          phone: "11988887777",
+          createdAt: new Date().toISOString(),
+        },
+      ]),
+    );
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <BudgetPage />
+      </MemoryRouter>,
+    );
+
+    await user.type(
+      screen.getByRole("textbox", { name: /Nome do Cliente/i }),
+      "Maria",
+    );
+    await user.click(await screen.findByText("Maria Cadastrada"));
+
+    expect(
+      screen.getByRole("textbox", { name: /CPF \/ CNPJ/i }),
+    ).toHaveValue("529.982.247-25");
+    expect(
+      screen.getByRole("textbox", { name: /Email do Cliente/i }),
+    ).toHaveValue("maria@cliente.com");
+    expect(
+      screen.getByText(/Vinculado ao cliente cadastrado/i),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /2. Itens e Valores/i }));
+    await user.type(
+      screen.getByPlaceholderText("Ex: Desenvolvimento de Site"),
+      "Servico",
+    );
+    await user.clear(screen.getByRole("spinbutton", { name: /Valor Unitário/i }));
+    await user.type(screen.getByRole("spinbutton", { name: /Valor Unitário/i }), "10");
+    await user.click(screen.getByRole("button", { name: /Salvar Orçamento/i }));
+
+    await waitFor(() =>
+      expect(localStorage.getItem("@OrcaRapido:budgets")).toBeTruthy(),
+    );
+    const budgets = JSON.parse(localStorage.getItem("@OrcaRapido:budgets") || "[]");
+    expect(budgets[0].client.clientId).toBe("client-1");
+  });
+
+  it("unlinks the client when the name is edited after selecting a suggestion", async () => {
+    localStorage.setItem(
+      "@OrcaRapido:clients",
+      JSON.stringify([
+        {
+          id: "client-1",
+          name: "Maria Cadastrada",
+          createdAt: new Date().toISOString(),
+        },
+      ]),
+    );
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <BudgetPage />
+      </MemoryRouter>,
+    );
+
+    await user.type(
+      screen.getByRole("textbox", { name: /Nome do Cliente/i }),
+      "Maria",
+    );
+    await user.click(await screen.findByText("Maria Cadastrada"));
+    expect(
+      screen.getByText(/Vinculado ao cliente cadastrado/i),
+    ).toBeInTheDocument();
+
+    await user.type(
+      screen.getByRole("textbox", { name: /Nome do Cliente/i }),
+      " Editada",
+    );
+
+    expect(
+      screen.queryByText(/Vinculado ao cliente cadastrado/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", {
+        name: /Cadastrar este cliente para reaproveitar depois/i,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("registers a new client when 'save as new client' is checked on save", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <BudgetPage />
+      </MemoryRouter>,
+    );
+
+    await user.type(
+      screen.getByRole("textbox", { name: /Nome do Cliente/i }),
+      "Cliente Para Cadastrar",
+    );
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: /Cadastrar este cliente para reaproveitar depois/i,
+      }),
+    );
+
+    await user.click(screen.getByRole("button", { name: /2. Itens e Valores/i }));
+    await user.type(
+      screen.getByPlaceholderText("Ex: Desenvolvimento de Site"),
+      "Servico",
+    );
+    await user.clear(screen.getByRole("spinbutton", { name: /Valor Unitário/i }));
+    await user.type(screen.getByRole("spinbutton", { name: /Valor Unitário/i }), "10");
+    await user.click(screen.getByRole("button", { name: /Salvar Orçamento/i }));
+
+    await waitFor(() =>
+      expect(localStorage.getItem("@OrcaRapido:clients")).toBeTruthy(),
+    );
+    const clients = JSON.parse(localStorage.getItem("@OrcaRapido:clients") || "[]");
+    expect(clients).toHaveLength(1);
+    expect(clients[0].name).toBe("Cliente Para Cadastrar");
+
+    const budgets = JSON.parse(localStorage.getItem("@OrcaRapido:budgets") || "[]");
+    expect(budgets[0].client.clientId).toBe(clients[0].id);
+  });
+
+  it("saves a custom footer text and shows it instead of the default banner", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <BudgetPage />
+      </MemoryRouter>,
+    );
+
+    await user.type(
+      screen.getByRole("textbox", { name: /Nome do Cliente/i }),
+      "Cliente Rodapé",
+    );
+    await user.click(screen.getByRole("button", { name: /2. Itens e Valores/i }));
+    await user.type(
+      screen.getByPlaceholderText("Ex: Desenvolvimento de Site"),
+      "Servico",
+    );
+    await user.clear(screen.getByRole("spinbutton", { name: /Valor Unitário/i }));
+    await user.type(screen.getByRole("spinbutton", { name: /Valor Unitário/i }), "10");
+
+    await user.click(screen.getByRole("button", { name: /3. Configurações do Documento/i }));
+    await user.type(
+      screen.getByRole("textbox", { name: /Rodapé personalizado do PDF/i }),
+      "Meu rodapé customizado",
+    );
+
+    expect(
+      screen.getByText("Meu rodapé customizado", { selector: "p" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Orçamento digital gratuito criado por"),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Salvar Orçamento/i }));
+
+    await waitFor(() =>
+      expect(localStorage.getItem("@OrcaRapido:budgets")).toBeTruthy(),
+    );
+    const budgets = JSON.parse(localStorage.getItem("@OrcaRapido:budgets") || "[]");
+    expect(budgets[0].modules.footerText).toBe("Meu rodapé customizado");
+  });
+
+  it("autocompletes client fields from a document match", async () => {
+    localStorage.setItem(
+      "@OrcaRapido:clients",
+      JSON.stringify([
+        {
+          id: "client-doc",
+          name: "Empresa Cliente LTDA",
+          document: "52.998.224/0001-25",
+          createdAt: new Date().toISOString(),
+        },
+      ]),
+    );
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <BudgetPage />
+      </MemoryRouter>,
+    );
+
+    await user.type(
+      screen.getByRole("textbox", { name: /CPF \/ CNPJ/i }),
+      "52998224",
+    );
+    await user.click(await screen.findByText("Empresa Cliente LTDA"));
+
+    expect(
+      screen.getByRole("textbox", { name: /Nome do Cliente/i }),
+    ).toHaveValue("Empresa Cliente LTDA");
+  });
+
+  describe("with multiple registered companies", () => {
+    beforeEach(() => {
+      localStorage.setItem(
+        "@OrcaRapido:profiles",
+        JSON.stringify([
+          {
+            id: "profile-a",
+            companyName: "Empresa A",
+            userName: "Responsavel A",
+            phone: "11999999999",
+            pixKey: "",
+            createdAt: new Date().toISOString(),
+          },
+          {
+            id: "profile-b",
+            companyName: "Empresa B",
+            userName: "Responsavel B",
+            phone: "11988888888",
+            pixKey: "",
+            createdAt: new Date().toISOString(),
+          },
+        ]),
+      );
+    });
+
+    it("blocks saving until an issuing company is explicitly selected", async () => {
+      const user = userEvent.setup();
+      render(
+        <MemoryRouter>
+          <BudgetPage />
+        </MemoryRouter>,
+      );
+
+      await screen.findByRole("button", { name: /Salvar Orçamento/i });
+      await user.type(
+        screen.getByRole("textbox", { name: /Nome do Cliente/i }),
+        "Cliente Sem Empresa",
+      );
+      await user.click(screen.getByRole("button", { name: /2. Itens e Valores/i }));
+      await user.type(
+        screen.getByPlaceholderText("Ex: Desenvolvimento de Site"),
+        "Servico",
+      );
+      await user.click(screen.getByRole("button", { name: /Salvar Orçamento/i }));
+
+      const messages = await screen.findAllByText(
+        "Selecione a empresa emissora deste orçamento antes de salvar.",
+      );
+      expect(messages.length).toBeGreaterThan(0);
+      expect(localStorage.getItem("@OrcaRapido:budgets")).toBeNull();
+    });
+
+    it("saves the budget under the explicitly selected company", async () => {
+      const user = userEvent.setup();
+      render(
+        <MemoryRouter>
+          <BudgetPage />
+        </MemoryRouter>,
+      );
+
+      const profileSelect = await screen.findByRole("combobox", {
+        name: /Empresa Emissora/i,
+      });
+      await user.selectOptions(profileSelect, "profile-b");
+      expect(profileSelect).toHaveValue("profile-b");
+
+      await user.type(
+        screen.getByRole("textbox", { name: /Nome do Cliente/i }),
+        "Cliente Empresa B",
+      );
+      await user.click(screen.getByRole("button", { name: /2. Itens e Valores/i }));
+      await user.type(
+        screen.getByPlaceholderText("Ex: Desenvolvimento de Site"),
+        "Servico",
+      );
+      await user.click(screen.getByRole("button", { name: /Salvar Orçamento/i }));
+
+      await waitFor(() =>
+        expect(localStorage.getItem("@OrcaRapido:budgets")).toBeTruthy(),
+      );
+      const budgets = JSON.parse(localStorage.getItem("@OrcaRapido:budgets") || "[]");
+      expect(budgets[0].profileId).toBe("profile-b");
+    });
   });
 });

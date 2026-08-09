@@ -29,9 +29,9 @@ jest.mock("../../hooks/useBudget", () => ({
   }),
 }));
 
-jest.mock("../../hooks/useProfile", () => ({
-  useProfile: () => ({
-    profile: null,
+jest.mock("../../hooks/useProfiles", () => ({
+  useProfiles: () => ({
+    profiles: [],
     loading: false,
     error: null,
   }),
@@ -53,7 +53,6 @@ const makeBudget = (overrides: Partial<Budget> = {}): Budget => ({
   modules: {
     showTerms: true,
     showSignature: true,
-    removeAds: false,
     ...overrides.modules,
   },
   totals: { subtotal: 0, discount: 0, total: 100, ...overrides.totals },
@@ -90,9 +89,7 @@ describe("HomePage navigation and print validity", () => {
     );
     expect(navigateMock).toHaveBeenCalledWith("/data");
 
-    await user.click(
-      screen.getByRole("button", { name: "Configurações / Perfil" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Empresas" }));
     expect(navigateMock).toHaveBeenCalledWith("/profile");
 
     await user.click(screen.getByRole("button", { name: "Novo Orçamento" }));

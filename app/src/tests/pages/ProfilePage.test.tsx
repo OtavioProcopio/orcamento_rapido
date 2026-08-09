@@ -1,20 +1,34 @@
-import { MemoryRouter } from "react-router-dom";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { Budget, MeiProfile } from "../../types";
 import { ProfilePage } from "../../pages/ProfilePage";
 import { fileToBase64, validateLogoFile } from "../../utils/file";
 
-const PROFILE_KEY = "@OrcaRapido:mei_profile";
-const navigateMock = jest.fn();
+const addProfileMock = jest.fn();
+const updateProfileMock = jest.fn();
+const deleteProfileMock = jest.fn();
+let profiles: MeiProfile[] = [];
+let budgets: Budget[] = [];
 
-jest.mock("react-router-dom", () => {
-  const actual: typeof import("react-router-dom") =
-    jest.requireActual("react-router-dom");
-  return {
-    ...actual,
-    useNavigate: () => navigateMock,
-  };
-});
+jest.mock("../../hooks/useProfiles", () => ({
+  useProfiles: () => ({
+    profiles,
+    loading: false,
+    error: null,
+    addProfile: addProfileMock,
+    updateProfile: updateProfileMock,
+    deleteProfile: deleteProfileMock,
+  }),
+}));
+
+jest.mock("../../hooks/useBudget", () => ({
+  useBudget: () => ({
+    budgets,
+    loading: false,
+    error: null,
+  }),
+}));
 
 jest.mock("../../utils/file", () => ({
   fileToBase64: jest.fn(() => "abc"),
@@ -22,13 +36,102 @@ jest.mock("../../utils/file", () => ({
   MAX_LOGO_SIZE_BYTES: 1_000_000,
 }));
 
+const makeProfile = (overrides: Partial<MeiProfile> = {}): MeiProfile => ({
+  id: "p1",
+  companyName: "Empresa Um",
+  userName: "Responsavel",
+  phone: "11999999999",
+  pixKey: "pix",
+  createdAt: new Date().toISOString(),
+  ...overrides,
+});
+
+beforeEach(() => {
+  profiles = [];
+  budgets = [];
+  jest.clearAllMocks();
+  addProfileMock.mockResolvedValue([]);
+  updateProfileMock.mockResolvedValue([]);
+  deleteProfileMock.mockResolvedValue([]);
+});
+
 describe("ProfilePage", () => {
-  beforeEach(() => {
-    localStorage.clear();
-    jest.clearAllMocks();
+  it("renders an empty state when there are no profiles", () => {
+    render(
+      <MemoryRouter>
+        <ProfilePage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("Nenhuma empresa cadastrada")).toBeInTheDocument();
   });
 
-  it("navigates back to the dashboard", async () => {
+  it("lists profiles with their budget count and a link to filtered orçamentos", () => {
+    profiles = [makeProfile({ id: "p1", companyName: "Maria ME" })];
+    budgets = [
+      {
+        id: "b1",
+        number: 1,
+        status: "draft",
+        createdAt: new Date().toISOString(),
+        profileId: "p1",
+        client: { name: "Cliente" },
+        items: [],
+        modules: { showTerms: true, showSignature: true },
+        totals: { subtotal: 0, discount: 0, total: 0 },
+      },
+      {
+        id: "b2",
+        number: 2,
+        status: "draft",
+        createdAt: new Date().toISOString(),
+        client: { name: "Cliente Sem Perfil" },
+        items: [],
+        modules: { showTerms: true, showSignature: true },
+        totals: { subtotal: 0, discount: 0, total: 0 },
+      },
+    ];
+
+    render(
+      <MemoryRouter>
+        <ProfilePage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("Maria ME")).toBeInTheDocument();
+    expect(screen.getByText("1 orçamento")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Ver orçamentos" }),
+    ).toHaveAttribute("href", "/dashboard?profileId=p1");
+  });
+
+  it("creates a new profile from the form, masking document and phone", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <ProfilePage />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Nova Empresa" }));
+    await user.type(screen.getByLabelText("Nome da Empresa"), "Empresa Nova");
+    await user.type(screen.getByLabelText("Nome do Profissional"), "Pessoa");
+    await user.type(screen.getByLabelText("CPF / CNPJ"), "52998224725");
+    await user.type(screen.getByLabelText("WhatsApp / Telefone"), "11988887777");
+    await user.click(screen.getByRole("button", { name: "Cadastrar empresa" }));
+
+    expect(addProfileMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        companyName: "Empresa Nova",
+        userName: "Pessoa",
+        document: "529.982.247-25",
+        phone: "11988887777",
+      }),
+    );
+  });
+
+  it("shows validation errors for required fields", async () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
@@ -36,61 +139,48 @@ describe("ProfilePage", () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole("button", { name: "Voltar" }));
-
-    expect(navigateMock).toHaveBeenCalledWith("/dashboard");
-  });
-
-  it("validates required fields", async () => {
-    render(
-      <MemoryRouter>
-        <ProfilePage />
-      </MemoryRouter>,
-    );
-
-    await userEvent.click(
-      screen.getByRole("button", { name: "Salvar Perfil" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Nova Empresa" }));
+    await user.click(screen.getByRole("button", { name: "Cadastrar empresa" }));
 
     expect(
       await screen.findByText("Nome da empresa é obrigatório."),
     ).toBeInTheDocument();
-    expect(screen.getByText("WhatsApp/Telefone é obrigatório.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Nome do profissional é obrigatório."),
+    ).toBeInTheDocument();
+    expect(addProfileMock).not.toHaveBeenCalled();
   });
 
-  it("saves profile to storage", async () => {
+  it("edits an existing profile", async () => {
+    profiles = [makeProfile({ id: "p1", companyName: "Empresa Antiga" })];
     const user = userEvent.setup();
+
     render(
       <MemoryRouter>
         <ProfilePage />
       </MemoryRouter>,
     );
 
-    await user.type(screen.getByLabelText("Nome da Empresa"), "Empresa");
-    await user.type(screen.getByLabelText("CPF / CNPJ"), "52998224725");
-    await user.type(screen.getByLabelText("Nome do Profissional"), "Pessoa");
-    await user.type(
-      screen.getByLabelText("WhatsApp / Telefone"),
-      "11999999999",
+    await user.click(screen.getByRole("button", { name: "Editar" }));
+    const nameField = screen.getByLabelText("Nome da Empresa");
+    await user.clear(nameField);
+    await user.type(nameField, "Empresa Renomeada");
+    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
+
+    expect(updateProfileMock).toHaveBeenCalledWith(
+      "p1",
+      expect.objectContaining({ companyName: "Empresa Renomeada" }),
     );
-
-    await user.click(screen.getByRole("button", { name: "Salvar Perfil" }));
-
-    await waitFor(() => {
-      const saved = localStorage.getItem(PROFILE_KEY);
-      expect(saved).toContain("Empresa");
-      expect(saved).toContain("529.982.247-25");
-    });
-
-    expect(await screen.findByText("Salvo com sucesso.")).toBeInTheDocument();
   });
 
-  it("handles file select", async () => {
+  it("uploads a logo and shows the preview", async () => {
     render(
       <MemoryRouter>
         <ProfilePage />
       </MemoryRouter>,
     );
+
+    await userEvent.click(screen.getByRole("button", { name: "Nova Empresa" }));
     const input =
       document.querySelector<HTMLInputElement>('input[type="file"]');
     if (!input) {
@@ -98,21 +188,14 @@ describe("ProfilePage", () => {
     }
     const file = new File(["hello"], "hello.png", { type: "image/png" });
     await userEvent.upload(input, file);
-    await waitFor(() => {
-      expect(fileToBase64).toHaveBeenCalled();
-    });
-    expect(await screen.findByAltText("Pré-visualização da logo")).toHaveAttribute(
-      "src",
-      "abc",
-    );
+
+    expect(fileToBase64).toHaveBeenCalled();
+    expect(
+      await screen.findByAltText("Pré-visualização da logo"),
+    ).toHaveAttribute("src", "abc");
   });
 
-  it("rejects a file that fails validation and shows the error instead of converting it", async () => {
-    // O atributo accept do input já filtra pelo seletor de arquivos do SO,
-    // então o userEvent.upload não dispara o onChange pra um tipo fora da
-    // lista (nem chegaria a chamar validateLogoFile). Um PNG grande demais
-    // passa pelo filtro de tipo e exercita a validação de tamanho de
-    // verdade, sem depender de mockar o retorno.
+  it("rejects a logo that fails validation", async () => {
     (validateLogoFile as jest.Mock).mockReturnValueOnce(
       "Arquivo muito grande. O tamanho máximo é 1MB.",
     );
@@ -122,6 +205,8 @@ describe("ProfilePage", () => {
         <ProfilePage />
       </MemoryRouter>,
     );
+
+    await userEvent.click(screen.getByRole("button", { name: "Nova Empresa" }));
     const input =
       document.querySelector<HTMLInputElement>('input[type="file"]');
     if (!input) {
@@ -135,34 +220,57 @@ describe("ProfilePage", () => {
       await screen.findByText("Arquivo muito grande. O tamanho máximo é 1MB."),
     ).toBeInTheDocument();
     expect(fileToBase64).not.toHaveBeenCalled();
-    expect(
-      screen.queryByAltText("Pré-visualização da logo"),
-    ).not.toBeInTheDocument();
   });
 
-  it("clears the logo preview when the file selection is cancelled", async () => {
+  it("navigates back to the dashboard", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter initialEntries={["/profile"]}>
+        <Routes>
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/dashboard" element={<div>Painel</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Voltar" }));
+
+    expect(await screen.findByText("Painel")).toBeInTheDocument();
+  });
+
+  it("cancels the delete confirmation without deleting", async () => {
+    profiles = [makeProfile({ id: "p1", companyName: "Empresa Mantida" })];
+    const user = userEvent.setup();
+
     render(
       <MemoryRouter>
         <ProfilePage />
       </MemoryRouter>,
     );
-    const input =
-      document.querySelector<HTMLInputElement>('input[type="file"]');
-    if (!input) {
-      throw new Error("File input not found");
-    }
-    const file = new File(["hello"], "hello.png", { type: "image/png" });
-    await userEvent.upload(input, file);
-    expect(
-      await screen.findByAltText("Pré-visualização da logo"),
-    ).toBeInTheDocument();
 
-    fireEvent.change(input, { target: { files: [] } });
+    await user.click(screen.getByRole("button", { name: "Excluir" }));
+    const dialog = screen.getByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
 
-    await waitFor(() => {
-      expect(
-        screen.queryByAltText("Pré-visualização da logo"),
-      ).not.toBeInTheDocument();
-    });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(deleteProfileMock).not.toHaveBeenCalled();
+  });
+
+  it("deletes a profile after confirmation", async () => {
+    profiles = [makeProfile({ id: "p1", companyName: "Empresa Para Excluir" })];
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <ProfilePage />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Excluir" }));
+    const dialog = screen.getByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Confirmar" }));
+
+    expect(deleteProfileMock).toHaveBeenCalledWith("p1");
   });
 });

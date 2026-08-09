@@ -12,7 +12,7 @@ const baseBudget: Budget = {
   createdAt: "2026-08-01T12:00:00.000Z",
   client: { name: "Cliente Teste", phone: "(11) 98888-7777" },
   items: [],
-  modules: { showTerms: true, showSignature: true, removeAds: false },
+  modules: { showTerms: true, showSignature: true },
   totals: { subtotal: 100, discount: 0, total: 100 },
 };
 

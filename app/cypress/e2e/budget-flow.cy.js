@@ -5,13 +5,14 @@ describe("Orca Rapido flow", () => {
     // Sem perfil/orçamentos salvos, o CTA da Landing leva direto para o
     // cadastro do perfil (ver ctaTarget em LandingPage.tsx).
     cy.get("[data-testid='landing-cta']").click();
-    cy.contains("Dados usados nos orçamentos").should("be.visible");
+    cy.contains("Nenhuma empresa cadastrada").should("be.visible");
+    cy.contains("Nova Empresa").click();
     cy.contains("Nome da Empresa").find("input").type("Empresa Teste");
     cy.contains("Nome do Profissional").find("input").type("Profissional Teste");
     cy.contains("WhatsApp / Telefone").find("input").type("11999999999");
     cy.contains("Chave Pix").find("input").type("pix@teste.com");
-    cy.contains("Salvar Perfil").click();
-    cy.contains("Salvo com sucesso.").should("be.visible");
+    cy.contains("Cadastrar empresa").click();
+    cy.contains("Empresa Teste").should("be.visible");
     cy.screenshot("01-perfil-salvo");
 
     cy.contains("Voltar").click();

@@ -17,7 +17,7 @@ type BudgetPreviewProps = {
   total: number;
   showLogo: boolean;
   showSignature: boolean;
-  showBanner: boolean;
+  footerText?: string;
   paymentTerms?: string;
   terms?: string;
 };
@@ -36,7 +36,7 @@ export const BudgetPreview = forwardRef<HTMLDivElement, BudgetPreviewProps>(
       total,
       showLogo,
       showSignature,
-      showBanner,
+      footerText,
       paymentTerms,
       terms,
     },
@@ -226,7 +226,17 @@ export const BudgetPreview = forwardRef<HTMLDivElement, BudgetPreviewProps>(
             </div>
           )}
 
-          {showBanner && (
+          {footerText ? (
+            <div className="mt-4 bg-blue-50/50 border border-blue-100 py-3 px-4 rounded-lg text-center">
+              <p className="text-slate-600 font-medium text-[10px] sm:text-xs whitespace-pre-wrap">
+                {footerText}
+              </p>
+            </div>
+          ) : (
+            // TODO(premium-gate): este banner padrão só deve poder ser
+            // substituído pelo footerText customizado para assinantes
+            // Premium — no plano free, ignorar footerText e manter sempre
+            // este banner.
             <div className="mt-4 bg-blue-50/50 border border-blue-100 py-3 px-4 rounded-lg text-center flex items-center justify-center gap-3">
               <p className="text-slate-600 font-medium text-[10px] sm:text-xs">
                 Orçamento digital gratuito criado por{" "}

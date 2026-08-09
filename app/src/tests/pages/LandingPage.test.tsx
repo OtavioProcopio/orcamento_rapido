@@ -7,9 +7,9 @@ import type { Budget, MeiProfile } from "../../types";
 const navigateMock = jest.fn();
 
 let budgets: Budget[] = [];
-let profile: MeiProfile | null = null;
+let profiles: MeiProfile[] = [];
 let budgetsLoading = false;
-let profileLoading = false;
+let profilesLoading = false;
 
 jest.mock("react-router-dom", () => {
   const actual: typeof import("react-router-dom") =
@@ -29,10 +29,10 @@ jest.mock("../../hooks/useBudget", () => ({
   }),
 }));
 
-jest.mock("../../hooks/useProfile", () => ({
-  useProfile: () => ({
-    profile,
-    loading: profileLoading,
+jest.mock("../../hooks/useProfiles", () => ({
+  useProfiles: () => ({
+    profiles,
+    loading: profilesLoading,
     error: null,
   }),
 }));
@@ -40,9 +40,9 @@ jest.mock("../../hooks/useProfile", () => ({
 describe("LandingPage", () => {
   beforeEach(() => {
     budgets = [];
-    profile = null;
+    profiles = [];
     budgetsLoading = false;
-    profileLoading = false;
+    profilesLoading = false;
     navigateMock.mockReset();
   });
 
@@ -70,8 +70,32 @@ describe("LandingPage", () => {
         createdAt: "2026-05-09T00:00:00.000Z",
         client: { name: "Cliente" },
         items: [],
-        modules: { showTerms: true, showSignature: true, removeAds: false },
+        modules: { showTerms: true, showSignature: true },
         totals: { subtotal: 0, discount: 0, total: 0 },
+      },
+    ];
+
+    render(
+      <MemoryRouter>
+        <LandingPage />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Começar a usar" }));
+
+    expect(navigateMock).toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("routes returning users with a registered company but no budgets to dashboard", async () => {
+    const user = userEvent.setup();
+    profiles = [
+      {
+        id: "p1",
+        companyName: "Empresa",
+        userName: "Responsavel",
+        phone: "11999999999",
+        pixKey: "pix",
+        createdAt: "2026-05-09T00:00:00.000Z",
       },
     ];
 

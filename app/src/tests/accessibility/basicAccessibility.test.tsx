@@ -15,9 +15,9 @@ jest.mock("../../hooks/useBudget", () => ({
   }),
 }));
 
-jest.mock("../../hooks/useProfile", () => ({
-  useProfile: () => ({
-    profile: null,
+jest.mock("../../hooks/useProfiles", () => ({
+  useProfiles: () => ({
+    profiles: [],
     loading: false,
     error: null,
   }),

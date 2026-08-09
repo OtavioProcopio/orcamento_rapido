@@ -14,7 +14,7 @@ describe("App navigation flow", () => {
       await screen.findByRole("button", { name: "Começar a usar" }),
     );
     expect(
-      await screen.findByText("Dados usados nos orçamentos"),
+      await screen.findByText("Nenhuma empresa cadastrada"),
     ).toBeInTheDocument();
   });
 });

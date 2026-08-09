@@ -2,9 +2,11 @@ import { IDBFactory } from "fake-indexeddb";
 import {
   normalizeBudget,
   normalizeBudgetItem,
+  normalizeClient,
+  normalizeProfile,
   storageAdapter,
 } from "../../storage/storageAdapter";
-import type { Budget, MeiProfile } from "../../types";
+import type { Budget, Client, MeiProfile } from "../../types";
 
 describe("storageAdapter", () => {
   const originalIndexedDB = globalThis.indexedDB;
@@ -12,7 +14,7 @@ describe("storageAdapter", () => {
     status: "draft" as const,
     items: [],
     discount: 0,
-    modules: { showTerms: true, showSignature: true, removeAds: false },
+    modules: { showTerms: true, showSignature: true },
     totals: { subtotal: 0, discount: 0, total: 0 },
   };
 
@@ -31,17 +33,40 @@ describe("storageAdapter", () => {
     });
   });
 
-  it("saves and reads profile", async () => {
-    const profile: MeiProfile = {
-      companyName: "Empresa",
+  it("adds, updates and deletes profiles using the localStorage fallback", async () => {
+    const profileA: MeiProfile = {
+      id: "a",
+      companyName: "Empresa A",
       userName: "Usuario",
       phone: "11999999999",
       pixKey: "pix",
       logo: "data:image/png;base64,abc",
+      createdAt: new Date().toISOString(),
+    };
+    const profileB: MeiProfile = {
+      id: "b",
+      companyName: "Empresa B",
+      userName: "Usuario",
+      phone: "11988888888",
+      pixKey: "pix-b",
+      createdAt: new Date().toISOString(),
     };
 
-    await storageAdapter.saveProfile(profile);
-    await expect(storageAdapter.getProfile()).resolves.toEqual(profile);
+    const afterAdd = await storageAdapter.addProfile(profileA);
+    expect(afterAdd).toEqual([profileA]);
+    await storageAdapter.addProfile(profileB);
+    expect(localStorage.getItem("@OrcaRapido:profiles")).toContain("Empresa A");
+
+    const afterUpdate = await storageAdapter.updateProfile("a", {
+      companyName: "Empresa A Atualizada",
+    });
+    expect(
+      afterUpdate.find((profile) => profile.id === "a")?.companyName,
+    ).toBe("Empresa A Atualizada");
+
+    const afterDelete = await storageAdapter.deleteProfile("b");
+    expect(afterDelete).toHaveLength(1);
+    expect(afterDelete[0].id).toBe("a");
   });
 
   it("adds budget on top", async () => {
@@ -108,10 +133,42 @@ describe("storageAdapter", () => {
     expect(localStorage.getItem("@OrcaRapido:budgets")).toBeNull();
   });
 
-  it("reads invalid legacy profile data as null", async () => {
+  it("reads invalid legacy profile data as an empty profile list", async () => {
     localStorage.setItem("@OrcaRapido:mei_profile", "{invalid");
 
-    await expect(storageAdapter.getProfile()).resolves.toBeNull();
+    await expect(storageAdapter.getProfiles()).resolves.toEqual([]);
+  });
+
+  it("migrates a legacy single profile (localStorage fallback) into the profiles list and backfills budgets", async () => {
+    localStorage.setItem(
+      "@OrcaRapido:mei_profile",
+      JSON.stringify({
+        companyName: "Empresa Única",
+        userName: "Usuario",
+        phone: "11999999999",
+        pixKey: "pix",
+      }),
+    );
+    localStorage.setItem(
+      "@OrcaRapido:budgets",
+      JSON.stringify([
+        {
+          id: "b1",
+          number: 1,
+          createdAt: new Date().toISOString(),
+          client: { name: "Cliente" },
+          ...baseBudget,
+        },
+      ]),
+    );
+
+    const profiles = await storageAdapter.getProfiles();
+    expect(profiles).toHaveLength(1);
+    expect(profiles[0]).toMatchObject({ companyName: "Empresa Única" });
+    expect(profiles[0].id).toEqual(expect.any(String));
+
+    const budgets = await storageAdapter.getBudgets();
+    expect(budgets[0].profileId).toBe(profiles[0].id);
   });
 
   it("keeps addBudget idempotent for duplicate ids", async () => {
@@ -201,7 +258,7 @@ describe("storageAdapter", () => {
           },
           items: [],
           paymentTerms: "PIX",
-          modules: { showTerms: true, showSignature: true, removeAds: false },
+          modules: { showTerms: true, showSignature: true },
           totals: { subtotal: 0, discount: 0, total: 0 },
         },
       ]),
@@ -273,6 +330,75 @@ describe("storageAdapter", () => {
     expect(normalizeBudgetItem(null)).toBeNull();
     expect(normalizeBudget(null)).toBeNull();
   });
+
+  it("normalizes client raw data and rejects entries without a name", () => {
+    const normalized = normalizeClient({
+      id: 1,
+      name: "Cliente Legado",
+      document: "123",
+    });
+
+    expect(normalized).toMatchObject({
+      id: "1",
+      name: "Cliente Legado",
+      document: "123",
+    });
+    expect(normalizeClient({ name: "" })).toBeNull();
+    expect(normalizeClient(null)).toBeNull();
+  });
+
+  it("adds, updates and deletes clients using the localStorage fallback", async () => {
+    const clientA: Client = {
+      id: "a",
+      name: "Cliente A",
+      createdAt: new Date().toISOString(),
+    };
+    const clientB: Client = {
+      id: "b",
+      name: "Cliente B",
+      createdAt: new Date().toISOString(),
+    };
+
+    const afterAdd = await storageAdapter.addClient(clientA);
+    expect(afterAdd).toEqual([clientA]);
+    await storageAdapter.addClient(clientB);
+    expect(localStorage.getItem("@OrcaRapido:clients")).toContain("Cliente A");
+
+    const afterUpdate = await storageAdapter.updateClient("a", {
+      name: "Cliente A Atualizado",
+    });
+    expect(
+      afterUpdate.find((client) => client.id === "a")?.name,
+    ).toBe("Cliente A Atualizado");
+
+    const afterDelete = await storageAdapter.deleteClient("b");
+    expect(afterDelete).toHaveLength(1);
+    expect(afterDelete[0].id).toBe("a");
+  });
+
+  it("reads invalid legacy client data as an empty list", async () => {
+    localStorage.setItem("@OrcaRapido:clients", "{invalid");
+
+    await expect(storageAdapter.getClients()).resolves.toEqual([]);
+  });
+
+  it("normalizes profile raw data and rejects entries missing required fields", () => {
+    const normalized = normalizeProfile({
+      id: 1,
+      companyName: "Empresa Legada",
+      userName: "Usuario",
+      phone: "11999999999",
+    });
+
+    expect(normalized).toMatchObject({
+      id: "1",
+      companyName: "Empresa Legada",
+      userName: "Usuario",
+      phone: "11999999999",
+    });
+    expect(normalizeProfile({ companyName: "Sem telefone nem usuario" })).toBeNull();
+    expect(normalizeProfile(null)).toBeNull();
+  });
 });
 
 describe("storageAdapter with IndexedDB available", () => {
@@ -281,7 +407,7 @@ describe("storageAdapter with IndexedDB available", () => {
     status: "draft" as const,
     items: [],
     discount: 0,
-    modules: { showTerms: true, showSignature: true, removeAds: false },
+    modules: { showTerms: true, showSignature: true },
     totals: { subtotal: 0, discount: 0, total: 0 },
   };
 
@@ -302,18 +428,39 @@ describe("storageAdapter with IndexedDB available", () => {
     });
   });
 
-  it("persists profile through IndexedDB instead of the localStorage fallback", async () => {
-    const profile: MeiProfile = {
-      companyName: "Empresa IDB",
+  it("runs the full profile CRUD cycle through IndexedDB", async () => {
+    const profileA: MeiProfile = {
+      id: "a",
+      companyName: "Empresa IDB A",
       userName: "Usuario",
       phone: "11999999999",
       pixKey: "pix",
+      createdAt: new Date().toISOString(),
+    };
+    const profileB: MeiProfile = {
+      id: "b",
+      companyName: "Empresa IDB B",
+      userName: "Usuario",
+      phone: "11988888888",
+      pixKey: "pix-b",
+      createdAt: new Date().toISOString(),
     };
 
-    await storageAdapter.saveProfile(profile);
+    await storageAdapter.addProfile(profileA);
+    const afterAdd = await storageAdapter.addProfile(profileB);
+    expect(afterAdd.map((profile) => profile.id).sort()).toEqual(["a", "b"]);
+    expect(localStorage.getItem("@OrcaRapido:profiles")).toBeNull();
 
-    expect(localStorage.getItem("@OrcaRapido:mei_profile")).toBeNull();
-    await expect(storageAdapter.getProfile()).resolves.toEqual(profile);
+    const afterUpdate = await storageAdapter.updateProfile("a", {
+      companyName: "Empresa IDB A Atualizada",
+    });
+    expect(
+      afterUpdate.find((profile) => profile.id === "a")?.companyName,
+    ).toBe("Empresa IDB A Atualizada");
+
+    const afterDelete = await storageAdapter.deleteProfile("b");
+    expect(afterDelete).toHaveLength(1);
+    expect(afterDelete[0].id).toBe("a");
   });
 
   it("runs the full budget CRUD cycle through IndexedDB", async () => {
@@ -353,7 +500,9 @@ describe("storageAdapter with IndexedDB available", () => {
   });
 
   it("migrates legacy localStorage data into IndexedDB exactly once", async () => {
-    const legacyProfile: MeiProfile = {
+    // Formato legado (pré multi-perfil) nunca teve "id"/"createdAt" — é
+    // exatamente essa forma crua que a migração recebe e reconstrói.
+    const legacyProfile: Omit<MeiProfile, "id" | "createdAt"> = {
       companyName: "Empresa Legada",
       userName: "Usuario Legado",
       phone: "11988887777",
@@ -375,10 +524,15 @@ describe("storageAdapter with IndexedDB available", () => {
       JSON.stringify([legacyBudget]),
     );
 
-    await expect(storageAdapter.getProfile()).resolves.toEqual(legacyProfile);
+    const migratedProfiles = await storageAdapter.getProfiles();
+    expect(migratedProfiles).toHaveLength(1);
+    expect(migratedProfiles[0]).toMatchObject({
+      companyName: legacyProfile.companyName,
+    });
     const migratedBudgets = await storageAdapter.getBudgets();
     expect(migratedBudgets).toHaveLength(1);
     expect(migratedBudgets[0].id).toBe("legacy-1");
+    expect(migratedBudgets[0].profileId).toBe(migratedProfiles[0].id);
 
     // Uma segunda "gravação legada" no localStorage não deve ser reimportada:
     // a migração já rodou uma vez e não pode sobrescrever dados existentes.
@@ -409,5 +563,61 @@ describe("storageAdapter with IndexedDB available", () => {
 
     const budgets = await storageAdapter.getBudgets();
     expect(budgets.map((budget) => budget.id)).toEqual(["already-there"]);
+  });
+
+  it("does not migrate a legacy single profile when the profiles list already has data", async () => {
+    const existingProfile: MeiProfile = {
+      id: "already-there",
+      companyName: "Empresa Atual",
+      userName: "Usuario",
+      phone: "11999999999",
+      pixKey: "pix",
+      createdAt: new Date().toISOString(),
+    };
+    await storageAdapter.addProfile(existingProfile);
+
+    localStorage.setItem(
+      "@OrcaRapido:mei_profile",
+      JSON.stringify({
+        companyName: "Empresa Legada Ignorada",
+        userName: "Usuario",
+        phone: "11988887777",
+        pixKey: "pix-legado",
+      }),
+    );
+
+    const profiles = await storageAdapter.getProfiles();
+    expect(profiles.map((profile) => profile.companyName)).toEqual([
+      "Empresa Atual",
+    ]);
+  });
+
+  it("runs the full client CRUD cycle through IndexedDB", async () => {
+    const clientA: Client = {
+      id: "a",
+      name: "Cliente A",
+      createdAt: new Date().toISOString(),
+    };
+    const clientB: Client = {
+      id: "b",
+      name: "Cliente B",
+      createdAt: new Date().toISOString(),
+    };
+
+    await storageAdapter.addClient(clientA);
+    const afterAdd = await storageAdapter.addClient(clientB);
+    expect(afterAdd.map((client) => client.id).sort()).toEqual(["a", "b"]);
+    expect(localStorage.getItem("@OrcaRapido:clients")).toBeNull();
+
+    const afterUpdate = await storageAdapter.updateClient("a", {
+      name: "Cliente A Atualizado",
+    });
+    expect(
+      afterUpdate.find((client) => client.id === "a")?.name,
+    ).toBe("Cliente A Atualizado");
+
+    const afterDelete = await storageAdapter.deleteClient("b");
+    expect(afterDelete).toHaveLength(1);
+    expect(afterDelete[0].id).toBe("a");
   });
 });

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logoImage from "../assets/logo.svg";
 import { useBudget } from "../hooks/useBudget";
-import { useProfile } from "../hooks/useProfile";
+import { useProfiles } from "../hooks/useProfiles";
 
 const sectionCardClassName =
   "rounded-[28px] border border-white/10 bg-white/6 p-6 shadow-[0_24px_70px_rgba(2,6,23,0.22)] backdrop-blur-xl";
@@ -10,17 +10,17 @@ const sectionCardClassName =
 export function LandingPage() {
   const navigate = useNavigate();
   const { budgets, loading: budgetsLoading } = useBudget();
-  const { profile, loading: profileLoading } = useProfile();
+  const { profiles, loading: profilesLoading } = useProfiles();
 
   const ctaTarget = useMemo(() => {
-    if (budgets.length > 0 || profile) {
+    if (budgets.length > 0 || profiles.length > 0) {
       return "/dashboard";
     }
 
     return "/profile";
-  }, [budgets.length, profile]);
+  }, [budgets.length, profiles.length]);
 
-  const isLoading = budgetsLoading || profileLoading;
+  const isLoading = budgetsLoading || profilesLoading;
 
   return (
     <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.22),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(249,115,22,0.18),transparent_22%),linear-gradient(180deg,#030712_0%,#0f172a_45%,#020617_100%)] text-slate-100">

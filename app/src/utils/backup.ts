@@ -1,28 +1,50 @@
-import { normalizeBudget } from "../storage/storageAdapter";
-import type { Budget } from "../types";
+import {
+  normalizeBudget,
+  normalizeClient,
+  normalizeProfile,
+} from "../storage/storageAdapter";
+import type { Budget, Client, MeiProfile } from "../types";
 
 type BudgetBackup = {
   app: "orca-rapido";
-  version: 1;
+  version: 1 | 2 | 3;
   exportedAt: string;
   budgets: Budget[];
+  clients?: Client[];
+  profiles?: MeiProfile[];
 };
 
-export const createBudgetBackup = (budgets: Budget[]): string =>
+export type ParsedBudgetBackup = {
+  budgets: Budget[];
+  // undefined = backup não tinha essa chave (formato mais antigo) — nesse
+  // caso o cadastro local correspondente não deve ser tocado no import.
+  clients: Client[] | undefined;
+  profiles: MeiProfile[] | undefined;
+};
+
+export const createBudgetBackup = (
+  budgets: Budget[],
+  clients: Client[] = [],
+  profiles: MeiProfile[] = [],
+): string =>
   JSON.stringify(
     {
       app: "orca-rapido",
-      version: 1,
+      version: 3,
       exportedAt: new Date().toISOString(),
       budgets,
+      clients,
+      profiles,
     } satisfies BudgetBackup,
     null,
     2,
   );
 
-export const parseBudgetBackup = (content: string): Budget[] => {
+export const parseBudgetBackup = (content: string): ParsedBudgetBackup => {
   const parsed = JSON.parse(content) as Partial<BudgetBackup> | Budget[];
   const rawBudgets = Array.isArray(parsed) ? parsed : parsed.budgets;
+  const rawClients = Array.isArray(parsed) ? undefined : parsed.clients;
+  const rawProfiles = Array.isArray(parsed) ? undefined : parsed.profiles;
 
   if (!Array.isArray(rawBudgets)) {
     throw new Error("invalid-backup");
@@ -36,7 +58,19 @@ export const parseBudgetBackup = (content: string): Budget[] => {
     throw new Error("invalid-backup");
   }
 
-  return budgets;
+  const clients = Array.isArray(rawClients)
+    ? rawClients
+        .map(normalizeClient)
+        .filter((client): client is Client => client !== null)
+    : undefined;
+
+  const profiles = Array.isArray(rawProfiles)
+    ? rawProfiles
+        .map(normalizeProfile)
+        .filter((profile): profile is MeiProfile => profile !== null)
+    : undefined;
+
+  return { budgets, clients, profiles };
 };
 
 const FORMULA_TRIGGER_PATTERN = /^[=+\-@\t\r]/;

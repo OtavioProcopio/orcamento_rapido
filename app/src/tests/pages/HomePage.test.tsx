@@ -1,13 +1,15 @@
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Budget } from "../../types";
+import type { Budget, Client, MeiProfile } from "../../types";
 import { HomePage } from "../../pages/HomePage";
 import { printBudget } from "../../utils/printBudget";
 
 const clearBudgetsMock = jest.fn();
 const deleteBudgetMock = jest.fn();
 let budgets: Budget[] = [];
+let clients: Client[] = [];
+let profiles: MeiProfile[] = [];
 
 jest.mock("../../hooks/useBudget", () => ({
   useBudget: () => ({
@@ -19,9 +21,17 @@ jest.mock("../../hooks/useBudget", () => ({
   }),
 }));
 
-jest.mock("../../hooks/useProfile", () => ({
-  useProfile: () => ({
-    profile: null,
+jest.mock("../../hooks/useProfiles", () => ({
+  useProfiles: () => ({
+    profiles,
+    loading: false,
+    error: null,
+  }),
+}));
+
+jest.mock("../../hooks/useClients", () => ({
+  useClients: () => ({
+    clients,
     loading: false,
     error: null,
   }),
@@ -38,7 +48,6 @@ const makeBudget = (overrides: Partial<Budget> = {}): Budget => {
   const baseModules = {
     showTerms: true,
     showSignature: true,
-    removeAds: false,
   };
   const baseBudget: Budget = {
     id: "b1",
@@ -60,6 +69,8 @@ const makeBudget = (overrides: Partial<Budget> = {}): Budget => {
 
 beforeEach(() => {
   budgets = [];
+  clients = [];
+  profiles = [];
   clearBudgetsMock.mockClear();
   deleteBudgetMock.mockClear();
   jest.clearAllMocks();
@@ -259,5 +270,146 @@ describe("HomePage", () => {
     await user.click(screen.getByRole("button", { name: "Confirmar" }));
 
     expect(deleteBudgetMock).toHaveBeenCalledWith("delete-me");
+  });
+
+  it("navigates to the clients page", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={["/dashboard"]}>
+        <Routes>
+          <Route path="/dashboard" element={<HomePage />} />
+          <Route path="/clients" element={<div>Página de Clientes</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Clientes" }));
+
+    expect(await screen.findByText("Página de Clientes")).toBeInTheDocument();
+  });
+
+  it("filters the dashboard by clientId from the URL and allows clearing it", async () => {
+    clients = [
+      { id: "c1", name: "Cliente Filtrado", createdAt: new Date().toISOString() },
+    ];
+    budgets = [
+      makeBudget({
+        id: "a",
+        client: { name: "Cliente Filtrado", clientId: "c1" },
+      }),
+      makeBudget({ id: "b", client: { name: "Outro Cliente" } }),
+    ];
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter initialEntries={["/dashboard?clientId=c1"]}>
+        <Routes>
+          <Route path="/dashboard" element={<HomePage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Filtrando orçamentos de/)).toBeInTheDocument();
+    expect(screen.getAllByText("Cliente Filtrado")).toHaveLength(2);
+    expect(screen.queryByText("Outro Cliente")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Limpar filtro" }));
+
+    expect(
+      screen.queryByText(/Filtrando orçamentos de/),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Outro Cliente")).toBeInTheDocument();
+  });
+
+  it("shows a fallback label when the filtered clientId no longer matches a client", () => {
+    budgets = [makeBudget({ id: "a", client: { name: "Cliente Órfão", clientId: "missing" } })];
+
+    render(
+      <MemoryRouter initialEntries={["/dashboard?clientId=missing"]}>
+        <Routes>
+          <Route path="/dashboard" element={<HomePage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("cliente removido")).toBeInTheDocument();
+  });
+
+  it("navigates to the companies page", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={["/dashboard"]}>
+        <Routes>
+          <Route path="/dashboard" element={<HomePage />} />
+          <Route path="/profile" element={<div>Página de Empresas</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Empresas" }));
+
+    expect(await screen.findByText("Página de Empresas")).toBeInTheDocument();
+  });
+
+  it("filters the dashboard by profileId from the URL, allows clearing it, and prints using that profile", async () => {
+    profiles = [
+      {
+        id: "p1",
+        companyName: "Empresa Filtrada",
+        userName: "Responsavel",
+        phone: "11999999999",
+        pixKey: "pix",
+        createdAt: new Date().toISOString(),
+      },
+    ];
+    budgets = [
+      makeBudget({
+        id: "a",
+        profileId: "p1",
+        client: { name: "Cliente da Empresa" },
+      }),
+      makeBudget({ id: "b", client: { name: "Outro Cliente" } }),
+    ];
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter initialEntries={["/dashboard?profileId=p1"]}>
+        <Routes>
+          <Route path="/dashboard" element={<HomePage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Filtrando orçamentos da empresa/)).toBeInTheDocument();
+    expect(screen.getByText("Empresa Filtrada")).toBeInTheDocument();
+    expect(screen.getByText("Cliente da Empresa")).toBeInTheDocument();
+    expect(screen.queryByText("Outro Cliente")).not.toBeInTheDocument();
+
+    await user.click(screen.getAllByRole("button", { name: "Imprimir / Salvar PDF" })[0]);
+    expect(printBudgetMock).toHaveBeenCalledWith(
+      budgets[0],
+      expect.objectContaining({ companyName: "Empresa Filtrada" }),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Limpar filtro" }));
+
+    expect(
+      screen.queryByText(/Filtrando orçamentos da empresa/),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Outro Cliente")).toBeInTheDocument();
+  });
+
+  it("shows a fallback label when the filtered profileId no longer matches a profile", () => {
+    budgets = [makeBudget({ id: "a", profileId: "missing" })];
+
+    render(
+      <MemoryRouter initialEntries={["/dashboard?profileId=missing"]}>
+        <Routes>
+          <Route path="/dashboard" element={<HomePage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("empresa removida")).toBeInTheDocument();
   });
 });

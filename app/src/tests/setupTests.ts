@@ -1,6 +1,15 @@
 import "@testing-library/jest-dom";
 
 import { TextDecoder, TextEncoder } from "util";
+import { __resetStorageMigrationCacheForTests } from "../storage/storageAdapter";
+
+// Cada teste simula uma "sessão" de navegador nova (localStorage/IndexedDB
+// limpos), mas os caches de promise de migração do storageAdapter vivem no
+// módulo — sem resetar aqui, só o primeiro teste de cada arquivo migraria de
+// verdade.
+beforeEach(() => {
+  __resetStorageMigrationCacheForTests();
+});
 
 if (!globalThis.TextEncoder) {
   globalThis.TextEncoder = TextEncoder as unknown as typeof globalThis.TextEncoder;

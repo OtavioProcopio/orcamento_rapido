@@ -66,7 +66,7 @@ const renderPreviewHtml = (budget: Budget, profile: MeiProfile): string => {
         total: budget.totals.total,
         showLogo: Boolean(profile.logo),
         showSignature: budget.modules.showSignature,
-        showBanner: true,
+        footerText: budget.modules.footerText,
         paymentTerms: budget.paymentTerms,
         terms: budget.modules.showTerms ? budget.terms : undefined,
       }),

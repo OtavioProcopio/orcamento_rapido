@@ -6,6 +6,7 @@ import { HomePage } from "./pages/HomePage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { BudgetPage } from "./pages/BudgetPage";
 import { DataManagementPage } from "./pages/DataManagementPage";
+import { ClientsPage } from "./pages/ClientsPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LegalPage } from "./pages/LegalPage";
 
@@ -20,6 +21,7 @@ export function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/builder" element={<BudgetPage />} />
             <Route path="/data" element={<DataManagementPage />} />
+            <Route path="/clients" element={<ClientsPage />} />
             <Route path="/privacy" element={<LegalPage type="privacy" />} />
             <Route path="/terms" element={<LegalPage type="terms" />} />
             <Route

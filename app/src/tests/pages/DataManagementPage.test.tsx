@@ -15,23 +15,31 @@ jest.mock("../../storage/storageAdapter", () => ({
   storageAdapter: {
     getBudgets: jest.fn(),
     saveBudgets: jest.fn(),
+    getClients: jest.fn(),
+    saveClients: jest.fn(),
+    getProfiles: jest.fn(),
+    saveProfiles: jest.fn(),
   },
 }));
 
 jest.mock("../../utils/backup", () => ({
   createBudgetBackup: jest.fn(() => '{"app":"orca-rapido"}'),
-  parseBudgetBackup: jest.fn(() => [
-    {
-      id: "imported-budget",
-      number: 7,
-      status: "draft",
-      createdAt: "2026-05-09T00:00:00.000Z",
-      client: { name: "Importado" },
-      items: [],
-      modules: { showTerms: true, showSignature: true, removeAds: false },
-      totals: { subtotal: 0, discount: 0, total: 0 },
-    },
-  ]),
+  parseBudgetBackup: jest.fn(() => ({
+    budgets: [
+      {
+        id: "imported-budget",
+        number: 7,
+        status: "draft",
+        createdAt: "2026-05-09T00:00:00.000Z",
+        client: { name: "Importado" },
+        items: [],
+        modules: { showTerms: true, showSignature: true },
+        totals: { subtotal: 0, discount: 0, total: 0 },
+      },
+    ],
+    clients: undefined,
+    profiles: undefined,
+  })),
   createBudgetCsv: jest.fn(() => "numero,status\n1,draft"),
 }));
 
@@ -53,7 +61,7 @@ const budgets: Budget[] = [
     createdAt: "2026-05-09T00:00:00.000Z",
     client: { name: "Cliente" },
     items: [],
-    modules: { showTerms: true, showSignature: true, removeAds: false },
+    modules: { showTerms: true, showSignature: true },
     totals: { subtotal: 100, discount: 0, total: 100 },
   },
 ];
@@ -79,6 +87,10 @@ describe("DataManagementPage", () => {
     jest.clearAllMocks();
     storageAdapterMock.getBudgets.mockResolvedValue(budgets);
     storageAdapterMock.saveBudgets.mockResolvedValue();
+    storageAdapterMock.getClients.mockResolvedValue([]);
+    storageAdapterMock.saveClients.mockResolvedValue();
+    storageAdapterMock.getProfiles.mockResolvedValue([]);
+    storageAdapterMock.saveProfiles.mockResolvedValue();
     Object.defineProperty(window, "FileReader", {
       writable: true,
       value: FileReaderMock,
@@ -99,7 +111,7 @@ describe("DataManagementPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Backup JSON" }));
 
-    expect(createBudgetBackupMock).toHaveBeenCalledWith(budgets);
+    expect(createBudgetBackupMock).toHaveBeenCalledWith(budgets, [], []);
     expect(downloadBlobMock).toHaveBeenCalledWith(
       expect.any(Blob),
       expect.stringMatching(/^orca-rapido-backup-/),
@@ -217,6 +229,119 @@ describe("DataManagementPage", () => {
       await screen.findByText(/Importação realizada com sucesso!/),
     ).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("also saves clients when the backup includes them", async () => {
+    parseBudgetBackupMock.mockReturnValueOnce({
+      budgets: [
+        {
+          id: "imported-budget",
+          number: 7,
+          status: "draft",
+          createdAt: "2026-05-09T00:00:00.000Z",
+          client: { name: "Importado" },
+          items: [],
+          modules: { showTerms: true, showSignature: true },
+          totals: { subtotal: 0, discount: 0, total: 0 },
+        },
+      ],
+      clients: [
+        {
+          id: "client-1",
+          name: "Cliente Importado",
+          createdAt: "2026-05-09T00:00:00.000Z",
+        },
+      ],
+      profiles: undefined,
+    });
+
+    const user = userEvent.setup();
+    const { container } = render(
+      <MemoryRouter>
+        <DataManagementPage />
+      </MemoryRouter>,
+    );
+
+    const input = container.querySelector("input[type='file']") as HTMLInputElement | null;
+    if (!input) {
+      throw new Error("Import input not found");
+    }
+
+    const file = new File(
+      ['{"budgets":[],"clients":[]}'],
+      "backup.json",
+      { type: "application/json" },
+    ) as File & { __content?: string };
+    file.__content = '{"budgets":[],"clients":[]}';
+    await user.upload(input, file);
+
+    await user.click(
+      screen.getByRole("button", { name: "Importar e substituir" }),
+    );
+
+    await waitFor(() => {
+      expect(storageAdapterMock.saveClients.mock.calls[0]?.[0]).toEqual([
+        expect.objectContaining({ id: "client-1" }),
+      ]);
+    });
+  });
+
+  it("also saves profiles when the backup includes them", async () => {
+    parseBudgetBackupMock.mockReturnValueOnce({
+      budgets: [
+        {
+          id: "imported-budget",
+          number: 7,
+          status: "draft",
+          createdAt: "2026-05-09T00:00:00.000Z",
+          client: { name: "Importado" },
+          items: [],
+          modules: { showTerms: true, showSignature: true },
+          totals: { subtotal: 0, discount: 0, total: 0 },
+        },
+      ],
+      clients: undefined,
+      profiles: [
+        {
+          id: "profile-1",
+          companyName: "Empresa Importada",
+          userName: "Responsavel",
+          phone: "11999999999",
+          pixKey: "pix",
+          createdAt: "2026-05-09T00:00:00.000Z",
+        },
+      ],
+    });
+
+    const user = userEvent.setup();
+    const { container } = render(
+      <MemoryRouter>
+        <DataManagementPage />
+      </MemoryRouter>,
+    );
+
+    const input = container.querySelector("input[type='file']") as HTMLInputElement | null;
+    if (!input) {
+      throw new Error("Import input not found");
+    }
+
+    const file = new File(
+      ['{"budgets":[],"profiles":[]}'],
+      "backup.json",
+      { type: "application/json" },
+    ) as File & { __content?: string };
+    file.__content = '{"budgets":[],"profiles":[]}';
+    await user.upload(input, file);
+
+    await user.click(
+      screen.getByRole("button", { name: "Importar e substituir" }),
+    );
+
+    await waitFor(() => {
+      expect(storageAdapterMock.saveProfiles.mock.calls[0]?.[0]).toEqual([
+        expect.objectContaining({ id: "profile-1" }),
+      ]);
+    });
   });
 
   it("does not import when the confirmation is cancelled", async () => {

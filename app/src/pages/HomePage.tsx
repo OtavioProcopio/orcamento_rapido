@@ -1,14 +1,25 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "../components/Button";
 import { ConfirmationDialog } from "../components/ConfirmationDialog";
 import { EmptyState } from "../components/EmptyState";
 import { useBudget } from "../hooks/useBudget";
-import { useProfile } from "../hooks/useProfile";
+import { useClients } from "../hooks/useClients";
+import { useProfiles } from "../hooks/useProfiles";
 import { formatCurrency, formatDate } from "../utils/format";
 import { printBudget as openBudgetPrintWindow } from "../utils/printBudget";
 import { buildBudgetWhatsAppShareUrl } from "../utils/whatsapp";
-import type { Budget } from "../types";
+import type { Budget, MeiProfile } from "../types";
+
+const BLANK_PROFILE: MeiProfile = {
+  id: "",
+  companyName: "",
+  userName: "",
+  phone: "",
+  pixKey: "",
+  logo: undefined,
+  createdAt: "",
+};
 
 const getStatusLabel = (status: Budget["status"]) =>
   ({
@@ -21,6 +32,7 @@ const getStatusLabel = (status: Budget["status"]) =>
 
 export const HomePage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     budgets,
     loading,
@@ -28,30 +40,54 @@ export const HomePage = () => {
     clearBudgets,
     deleteBudget,
   } = useBudget();
-  const { profile } = useProfile();
+  const { profiles } = useProfiles();
+  const { clients } = useClients();
   const [printError, setPrintError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const clientFilterId = searchParams.get("clientId");
+  const clientFilter = clientFilterId
+    ? clients.find((client) => client.id === clientFilterId)
+    : null;
+  const profileFilterId = searchParams.get("profileId");
+  const profileFilter = profileFilterId
+    ? profiles.find((profile) => profile.id === profileFilterId)
+    : null;
+
+  const clearClientFilter = () => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("clientId");
+    setSearchParams(nextParams);
+  };
+
+  const clearProfileFilter = () => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("profileId");
+    setSearchParams(nextParams);
+  };
   const [confirmation, setConfirmation] = useState<
     | { action: "delete"; budgetId: string; label: string }
     | { action: "reset"; label: string }
     | null
   >(null);
 
-  const profileData = profile ?? {
-    companyName: "",
-    userName: "",
-    phone: "",
-    pixKey: "",
-    logo: undefined,
-  };
+  const resolveProfileForBudget = (budget: Budget): MeiProfile =>
+    profiles.find((profile) => profile.id === budget.profileId) ??
+    BLANK_PROFILE;
 
   const filteredBudgets = useMemo(() => {
+    const byClient = clientFilterId
+      ? budgets.filter((budget) => budget.client.clientId === clientFilterId)
+      : budgets;
+    const byProfile = profileFilterId
+      ? byClient.filter((budget) => budget.profileId === profileFilterId)
+      : byClient;
+
     const term = search.trim().toLowerCase();
     if (!term) {
-      return budgets;
+      return byProfile;
     }
 
-    return budgets.filter((budget) =>
+    return byProfile.filter((budget) =>
       [
         budget.client.name,
         budget.client.document,
@@ -63,7 +99,7 @@ export const HomePage = () => {
         .filter(Boolean)
         .some((value) => value?.toLowerCase().includes(term)),
     );
-  }, [budgets, search]);
+  }, [budgets, search, clientFilterId, profileFilterId]);
 
   const handlePrintBudget = (budgetId: string) => {
     const budget = budgets.find((item) => item.id === budgetId);
@@ -75,7 +111,7 @@ export const HomePage = () => {
     // Chamado de forma síncrona dentro do handler de clique: window.open
     // precisa rodar no mesmo tick do gesto do usuário, senão o navegador
     // trata como pop-up não solicitado e bloqueia.
-    const opened = openBudgetPrintWindow(budget, profileData);
+    const opened = openBudgetPrintWindow(budget, resolveProfileForBudget(budget));
     if (!opened) {
       setPrintError(
         "Não foi possível abrir a janela de impressão. Verifique se o navegador está bloqueando pop-ups.",
@@ -84,7 +120,10 @@ export const HomePage = () => {
   };
 
   const handleShareWhatsApp = (budget: Budget) => {
-    const url = buildBudgetWhatsAppShareUrl(budget, profileData.companyName);
+    const url = buildBudgetWhatsAppShareUrl(
+      budget,
+      resolveProfileForBudget(budget).companyName,
+    );
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -130,6 +169,9 @@ export const HomePage = () => {
             <Button variant="ghost" onClick={() => { void navigate("/data"); }}>
               Exportar/Importar Dados
             </Button>
+            <Button variant="ghost" onClick={() => { void navigate("/clients"); }}>
+              Clientes
+            </Button>
             <Button variant="ghost" onClick={handleResetBudgets}>
               Resetar Orçamentos
             </Button>
@@ -139,7 +181,7 @@ export const HomePage = () => {
                 void navigate("/profile");
               }}
             >
-              Configurações / Perfil
+              Empresas
             </Button>
             <Button
               onClick={() => {
@@ -167,6 +209,39 @@ export const HomePage = () => {
         </div>
 
         <section className="mt-8">
+          {clientFilterId ? (
+            <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-blue-400/20 bg-blue-400/10 px-4 py-3 text-sm text-blue-100">
+              <span>
+                Filtrando orçamentos de{" "}
+                <strong>{clientFilter?.name ?? "cliente removido"}</strong>.
+              </span>
+              <button
+                type="button"
+                onClick={clearClientFilter}
+                className="ml-auto text-xs font-semibold uppercase tracking-wide text-blue-200 underline-offset-4 hover:underline"
+              >
+                Limpar filtro
+              </button>
+            </div>
+          ) : null}
+          {profileFilterId ? (
+            <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100">
+              <span>
+                Filtrando orçamentos da empresa{" "}
+                <strong>
+                  {profileFilter?.companyName ?? "empresa removida"}
+                </strong>
+                .
+              </span>
+              <button
+                type="button"
+                onClick={clearProfileFilter}
+                className="ml-auto text-xs font-semibold uppercase tracking-wide text-cyan-200 underline-offset-4 hover:underline"
+              >
+                Limpar filtro
+              </button>
+            </div>
+          ) : null}
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <label className="w-full max-w-md text-sm font-medium text-slate-300">
               Buscar no histórico

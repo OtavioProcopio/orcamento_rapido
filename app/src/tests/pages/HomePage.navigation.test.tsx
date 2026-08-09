@@ -92,6 +92,9 @@ describe("HomePage navigation and print validity", () => {
     await user.click(screen.getByRole("button", { name: "Empresas" }));
     expect(navigateMock).toHaveBeenCalledWith("/profile");
 
+    await user.click(screen.getByRole("button", { name: "Pipeline" }));
+    expect(navigateMock).toHaveBeenCalledWith("/pipeline");
+
     await user.click(screen.getByRole("button", { name: "Novo Orçamento" }));
     expect(navigateMock).toHaveBeenCalledWith("/builder");
   });

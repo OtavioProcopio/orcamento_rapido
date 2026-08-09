@@ -13,6 +13,7 @@ import { useProfiles } from "../hooks/useProfiles";
 import { BudgetPreview } from "../components/BudgetPreview";
 import type { Budget, BudgetClient, BudgetItem, Client, MeiProfile } from "../types";
 import { budgetSchema } from "../utils/budgetSchema";
+import { BUDGET_STATUSES, getBudgetStatusLabel } from "../utils/budgetStatus";
 import { maskCpfCnpj } from "../utils/document";
 import { maskPhone } from "../utils/maskPhone";
 
@@ -881,11 +882,11 @@ export function BudgetPage() {
                     }}
                     className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5 text-slate-100 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10"
                   >
-                    <option value="draft">Rascunho</option>
-                    <option value="sent">Enviado</option>
-                    <option value="approved">Aprovado</option>
-                    <option value="rejected">Recusado</option>
-                    <option value="paid">Pago</option>
+                    {BUDGET_STATUSES.map((status) => (
+                      <option key={status} value={status}>
+                        {getBudgetStatusLabel(status)}
+                      </option>
+                    ))}
                   </select>
                 </label>
               </div>

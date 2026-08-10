@@ -1,9 +1,6 @@
 import { forwardRef } from "react";
 import type { BudgetClient, BudgetItem, MeiProfile } from "../types";
-
-const formatCurrency = (value: number, currency: string = "BRL") => {
-  return value.toLocaleString("pt-BR", { style: "currency", currency });
-};
+import { formatCurrency } from "../utils/format";
 
 type BudgetPreviewProps = {
   profile: MeiProfile;

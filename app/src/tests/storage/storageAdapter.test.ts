@@ -100,11 +100,11 @@ describe("storageAdapter", () => {
 
     await storageAdapter.addBudget(budget);
     const updated = await storageAdapter.updateBudget("a", {
-      pdfDataUrl: "data:application/pdf;base64,ZmFrZQ==",
+      status: "approved",
     });
 
     expect(updated[0].id).toBe("a");
-    expect(updated[0].pdfDataUrl).toMatch(/^data:application\/pdf/);
+    expect(updated[0].status).toBe("approved");
   });
 
   it("handles empty values gracefully", async () => {

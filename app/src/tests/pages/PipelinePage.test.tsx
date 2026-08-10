@@ -5,17 +5,21 @@ import type { Budget, Client, MeiProfile } from "../../types";
 import { PipelinePage } from "../../pages/PipelinePage";
 
 const updateBudgetMock = jest.fn();
+const refreshBudgetsMock = jest.fn();
 let budgets: Budget[] = [];
 let clients: Client[] = [];
 let profiles: MeiProfile[] = [];
 let budgetsLoading = false;
 let budgetsError: string | null = null;
+let budgetsRemoteUpdateAvailable = false;
 
 jest.mock("../../hooks/useBudget", () => ({
   useBudget: () => ({
     budgets,
     loading: budgetsLoading,
     error: budgetsError,
+    remoteUpdateAvailable: budgetsRemoteUpdateAvailable,
+    refreshBudgets: refreshBudgetsMock,
     updateBudget: updateBudgetMock,
   }),
 }));
@@ -54,6 +58,7 @@ beforeEach(() => {
   profiles = [];
   budgetsLoading = false;
   budgetsError = null;
+  budgetsRemoteUpdateAvailable = false;
   jest.clearAllMocks();
   updateBudgetMock.mockResolvedValue([]);
 });
@@ -377,5 +382,19 @@ describe("PipelinePage", () => {
       card.dispatchEvent(new Event("dragend", { bubbles: true }));
     });
     expect(card.className).not.toContain("opacity-40");
+  });
+
+  it("shows a banner when budgets changed in another tab and refreshes on click", async () => {
+    budgetsRemoteUpdateAvailable = true;
+    const user = userEvent.setup();
+    renderPipeline();
+
+    expect(
+      screen.getByText("Os orçamentos foram alterados em outra aba."),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Atualizar agora" }));
+
+    expect(refreshBudgetsMock).toHaveBeenCalledTimes(1);
   });
 });

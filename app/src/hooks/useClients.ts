@@ -1,17 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Client } from "../types";
 import { storageAdapter } from "../storage/storageAdapter";
+import { subscribeToStoreChanges } from "../utils/tabSync";
 
 export const useClients = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [remoteUpdateAvailable, setRemoteUpdateAvailable] = useState(false);
 
   const refreshClients = useCallback(async () => {
     try {
       const storedClients = await storageAdapter.getClients();
       setClients(storedClients);
       setError(null);
+      setRemoteUpdateAvailable(false);
     } catch {
       setError("Não foi possível carregar os clientes.");
     } finally {
@@ -26,6 +29,13 @@ export const useClients = () => {
 
     return () => window.clearTimeout(timer);
   }, [refreshClients]);
+
+  // Outra aba salvou clientes (ver storageAdapter.ts + utils/tabSync.ts) —
+  // só avisa; não recarrega sozinho pra não descartar um formulário aberto.
+  useEffect(
+    () => subscribeToStoreChanges("clients", () => setRemoteUpdateAvailable(true)),
+    [],
+  );
 
   const addClient = useCallback(async (client: Client) => {
     try {
@@ -67,6 +77,7 @@ export const useClients = () => {
     clients,
     loading,
     error,
+    remoteUpdateAvailable,
     addClient,
     refreshClients,
     updateClient,

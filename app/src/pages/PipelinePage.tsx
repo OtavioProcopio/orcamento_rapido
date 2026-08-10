@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
+import { RemoteUpdateBanner } from "../components/RemoteUpdateBanner";
 import { useBudget } from "../hooks/useBudget";
 import { useClients } from "../hooks/useClients";
 import { useProfiles } from "../hooks/useProfiles";
@@ -22,7 +23,14 @@ const columnAccent: Record<Budget["status"], string> = {
 export const PipelinePage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { budgets, loading, error, updateBudget } = useBudget();
+  const {
+    budgets,
+    loading,
+    error,
+    remoteUpdateAvailable,
+    refreshBudgets,
+    updateBudget,
+  } = useBudget();
   const { clients } = useClients();
   const { profiles } = useProfiles();
   const [draggedBudgetId, setDraggedBudgetId] = useState<string | null>(null);
@@ -150,6 +158,16 @@ export const PipelinePage = () => {
       {moveError ? <p className="mt-4 text-sm text-rose-300">{moveError}</p> : null}
       {loading ? (
         <p className="mt-4 text-sm text-slate-400">Carregando orçamentos...</p>
+      ) : null}
+      {remoteUpdateAvailable ? (
+        <div className="mt-4">
+          <RemoteUpdateBanner
+            label="Os orçamentos foram alterados em outra aba."
+            onRefresh={() => {
+              void refreshBudgets();
+            }}
+          />
+        </div>
       ) : null}
 
       {clientFilterId ? (

@@ -1,4 +1,3 @@
-export type CurrencyCode = "BRL" | "USD" | "EUR";
 export type BudgetStatus = "draft" | "sent" | "approved" | "rejected" | "paid";
 
 export type MeiProfile = {
@@ -67,6 +66,4 @@ export type Budget = {
   discount?: number;
   modules: BudgetModules;
   totals: BudgetTotals;
-  pdfDataUrl?: string;
-  previewImageDataUrl?: string;
 };

@@ -92,11 +92,19 @@ export function DataManagementPage() {
         if (parsedProfiles) {
           await storageAdapter.saveProfiles(parsedProfiles);
         }
+
+        const parts = [`${parsedBudgets.length} orçamento(s)`];
+        if (parsedClients) {
+          parts.push(`${parsedClients.length} cliente(s)`);
+        }
+        if (parsedProfiles) {
+          parts.push(`${parsedProfiles.length} empresa(s)`);
+        }
+
         setImportStatus({
           message:
-            "Importação realizada com sucesso! " +
-            parsedBudgets.length +
-            " orçamentos recuperados. Recarregue a página caso necessário.",
+            `Importação realizada com sucesso! ${parts.join(", ")} recuperados. ` +
+            "Recarregue a página caso necessário.",
           type: "success",
         });
       } catch {
@@ -157,9 +165,11 @@ export function DataManagementPage() {
         <section className="rounded-2xl border border-white/10 bg-slate-800 p-6 shadow-xl">
           <h2 className="mb-4 text-xl font-bold text-white">Importar Dados</h2>
           <p className="mb-6 text-sm leading-6 text-slate-300">
-            Traga seus orçamentos de volta ao sistema do arquivo JSON de backup.{" "}
+            Traga seus dados de volta ao sistema do arquivo JSON de backup.{" "}
             <strong className="text-red-400">
-              Atenção: A importação irá substituir os orçamentos locais.
+              Atenção: a importação substitui os orçamentos salvos neste
+              navegador — e também os clientes e empresas cadastradas, se o
+              backup incluir esses dados.
             </strong>
           </p>
           <div className="flex flex-col gap-4">
@@ -183,8 +193,8 @@ export function DataManagementPage() {
 
       {pendingImportFile ? (
         <ConfirmationDialog
-          title="Substituir histórico local"
-          description={`Isso vai substituir TODOS os orçamentos salvos neste navegador pelo conteúdo de "${pendingImportFile.name}". Essa ação não pode ser desfeita. Deseja continuar?`}
+          title="Substituir dados locais"
+          description={`Isso vai substituir TODOS os orçamentos salvos neste navegador pelo conteúdo de "${pendingImportFile.name}" — e também os clientes e empresas cadastradas, caso o arquivo inclua esses dados. Essa ação não pode ser desfeita. Deseja continuar?`}
           confirmLabel="Importar e substituir"
           onCancel={handleCancelImport}
           onConfirm={handleConfirmImport}

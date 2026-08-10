@@ -7,6 +7,7 @@ import { Button } from "../components/Button";
 import { ConfirmationDialog } from "../components/ConfirmationDialog";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
+import { RemoteUpdateBanner } from "../components/RemoteUpdateBanner";
 import { useBudget } from "../hooks/useBudget";
 import { useClients } from "../hooks/useClients";
 import { maskCpfCnpj } from "../utils/document";
@@ -29,8 +30,16 @@ const DEFAULT_VALUES: ClientFormValues = {
 
 export const ClientsPage = () => {
   const navigate = useNavigate();
-  const { clients, loading, error, addClient, updateClient, deleteClient } =
-    useClients();
+  const {
+    clients,
+    loading,
+    error,
+    remoteUpdateAvailable,
+    refreshClients,
+    addClient,
+    updateClient,
+    deleteClient,
+  } = useClients();
   const { budgets } = useBudget();
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -157,6 +166,16 @@ export const ClientsPage = () => {
       {error ? <p className="mt-4 text-sm text-rose-300">{error}</p> : null}
       {loading ? (
         <p className="mt-4 text-sm text-slate-400">Carregando clientes...</p>
+      ) : null}
+      {remoteUpdateAvailable ? (
+        <div className="mt-4">
+          <RemoteUpdateBanner
+            label="O cadastro de clientes foi alterado em outra aba."
+            onRefresh={() => {
+              void refreshClients();
+            }}
+          />
+        </div>
       ) : null}
 
       <div className="mt-6">

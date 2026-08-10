@@ -1,12 +1,9 @@
-import type { CurrencyCode } from "../types";
-
-export const formatCurrency = (
-  value: number,
-  currency: CurrencyCode = "BRL",
-): string => {
+// App é BRL-only (PIX, CPF/CNPJ, pt-BR fixo em todo o resto) — sem seletor
+// de moeda em lugar nenhum da UI, então nem vale receber isso como parâmetro.
+export const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
-    currency,
+    currency: "BRL",
   }).format(value);
 };
 

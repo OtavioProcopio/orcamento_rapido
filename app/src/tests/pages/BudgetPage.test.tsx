@@ -61,7 +61,6 @@ describe("BudgetPage", () => {
       number: 42,
       client: { name: "Cliente A" },
     });
-    expect(budgets[0].previewImageDataUrl).toBeUndefined();
   });
 
   it("persists optional document settings when values are valid", async () => {
@@ -509,6 +508,28 @@ describe("BudgetPage", () => {
     expect(
       screen.getByRole("textbox", { name: /Nome do Cliente/i }),
     ).toHaveValue("Empresa Cliente LTDA");
+  });
+
+  it("shows a banner when clients/profiles changed in another tab and refreshes on click", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <BudgetPage />
+      </MemoryRouter>,
+    );
+    await screen.findByRole("button", { name: /Salvar Orçamento/i });
+
+    const otherTabChannel = new BroadcastChannel("orca-rapido-sync");
+    otherTabChannel.postMessage({ store: "clients" });
+
+    expect(
+      await screen.findByText(
+        "A lista de clientes ou empresas mudou em outra aba — pode estar desatualizada aqui.",
+      ),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Atualizar agora" }));
+    otherTabChannel.close();
   });
 
   describe("with multiple registered companies", () => {

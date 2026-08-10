@@ -1,4 +1,5 @@
 import type { Budget, BudgetItem, BudgetStatus, Client, MeiProfile } from "../types";
+import { notifyStoreChanged } from "../utils/tabSync";
 
 const PROFILE_KEY = "@OrcaRapido:mei_profile";
 const PROFILES_KEY = "@OrcaRapido:profiles";
@@ -183,12 +184,6 @@ export const normalizeBudget = (budgetRaw: unknown): Budget | null => {
       discount,
       total,
     },
-    pdfDataUrl:
-      typeof budget.pdfDataUrl === "string" ? budget.pdfDataUrl : undefined,
-    previewImageDataUrl:
-      typeof budget.previewImageDataUrl === "string"
-        ? budget.previewImageDataUrl
-        : undefined,
   };
 };
 
@@ -209,6 +204,7 @@ export const storageAdapter = {
     const db = await openDatabase();
     if (!db) {
       localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+      notifyStoreChanged("profiles");
       return;
     }
 
@@ -216,6 +212,7 @@ export const storageAdapter = {
     await Promise.all(
       profiles.map((profile) => writeToStore(db, PROFILES_STORE, profile)),
     );
+    notifyStoreChanged("profiles");
   },
 
   async addProfile(profile: MeiProfile): Promise<MeiProfile[]> {
@@ -259,6 +256,7 @@ export const storageAdapter = {
     const db = await openDatabase();
     if (!db) {
       localStorage.setItem(BUDGETS_KEY, JSON.stringify(budgets));
+      notifyStoreChanged("budgets");
       return;
     }
 
@@ -266,16 +264,19 @@ export const storageAdapter = {
     await Promise.all(
       budgets.map((budget) => writeToStore(db, BUDGETS_STORE, budget)),
     );
+    notifyStoreChanged("budgets");
   },
 
   async clearBudgets(): Promise<void> {
     const db = await openDatabase();
     if (!db) {
       localStorage.removeItem(BUDGETS_KEY);
+      notifyStoreChanged("budgets");
       return;
     }
 
     await clearStore(db, BUDGETS_STORE);
+    notifyStoreChanged("budgets");
   },
 
   async addBudget(budget: Budget): Promise<Budget[]> {
@@ -315,6 +316,7 @@ export const storageAdapter = {
     const db = await openDatabase();
     if (!db) {
       localStorage.setItem(CLIENTS_KEY, JSON.stringify(clients));
+      notifyStoreChanged("clients");
       return;
     }
 
@@ -322,6 +324,7 @@ export const storageAdapter = {
     await Promise.all(
       clients.map((client) => writeToStore(db, CLIENTS_STORE, client)),
     );
+    notifyStoreChanged("clients");
   },
 
   async addClient(client: Client): Promise<Client[]> {

@@ -8,14 +8,18 @@ import { fileToBase64, validateLogoFile } from "../../utils/file";
 const addProfileMock = jest.fn();
 const updateProfileMock = jest.fn();
 const deleteProfileMock = jest.fn();
+const refreshProfilesMock = jest.fn();
 let profiles: MeiProfile[] = [];
 let budgets: Budget[] = [];
+let profilesRemoteUpdateAvailable = false;
 
 jest.mock("../../hooks/useProfiles", () => ({
   useProfiles: () => ({
     profiles,
     loading: false,
     error: null,
+    remoteUpdateAvailable: profilesRemoteUpdateAvailable,
+    refreshProfiles: refreshProfilesMock,
     addProfile: addProfileMock,
     updateProfile: updateProfileMock,
     deleteProfile: deleteProfileMock,
@@ -49,6 +53,7 @@ const makeProfile = (overrides: Partial<MeiProfile> = {}): MeiProfile => ({
 beforeEach(() => {
   profiles = [];
   budgets = [];
+  profilesRemoteUpdateAvailable = false;
   jest.clearAllMocks();
   addProfileMock.mockResolvedValue([]);
   updateProfileMock.mockResolvedValue([]);
@@ -272,5 +277,24 @@ describe("ProfilePage", () => {
     await user.click(within(dialog).getByRole("button", { name: "Confirmar" }));
 
     expect(deleteProfileMock).toHaveBeenCalledWith("p1");
+  });
+
+  it("shows a banner when profiles changed in another tab and refreshes on click", async () => {
+    profilesRemoteUpdateAvailable = true;
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <ProfilePage />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByText("As empresas cadastradas foram alteradas em outra aba."),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Atualizar agora" }));
+
+    expect(refreshProfilesMock).toHaveBeenCalledTimes(1);
   });
 });

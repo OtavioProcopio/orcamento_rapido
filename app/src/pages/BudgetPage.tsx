@@ -11,16 +11,14 @@ import { useBudget } from "../hooks/useBudget";
 import { useClients } from "../hooks/useClients";
 import { useProfiles } from "../hooks/useProfiles";
 import { BudgetPreview } from "../components/BudgetPreview";
+import { RemoteUpdateBanner } from "../components/RemoteUpdateBanner";
 import type { Budget, BudgetClient, BudgetItem, Client, MeiProfile } from "../types";
 import { budgetSchema } from "../utils/budgetSchema";
 import { BUDGET_STATUSES, getBudgetStatusLabel } from "../utils/budgetStatus";
 import { trackEvent } from "../utils/analytics";
 import { maskCpfCnpj } from "../utils/document";
 import { maskPhone } from "../utils/maskPhone";
-
-const formatCurrency = (value: number, currency: string = "BRL") => {
-  return value.toLocaleString("pt-BR", { style: "currency", currency });
-};
+import { formatCurrency } from "../utils/format";
 
 // Campos numéricos controlados: coagir "" para 0 a cada tecla força o React a
 // re-renderizar o input com valor "0" no meio da digitação, o que faz o
@@ -103,6 +101,8 @@ export function BudgetPage() {
     profiles,
     loading: profilesLoading,
     error: profilesError,
+    remoteUpdateAvailable: profilesRemoteUpdate,
+    refreshProfiles,
   } = useProfiles();
   const {
     budgets,
@@ -111,7 +111,17 @@ export function BudgetPage() {
     addBudget,
     updateBudget,
   } = useBudget();
-  const { clients, addClient } = useClients();
+  const {
+    clients,
+    addClient,
+    remoteUpdateAvailable: clientsRemoteUpdate,
+    refreshClients,
+  } = useClients();
+  const remoteUpdateAvailable = profilesRemoteUpdate || clientsRemoteUpdate;
+  const refreshClientsAndProfiles = () => {
+    void refreshClients();
+    void refreshProfiles();
+  };
   const initializedFromUrl = useRef(false);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
 
@@ -619,6 +629,12 @@ export function BudgetPage() {
               <div className="mb-4 rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
                 {submitError || budgetsError || profilesError}
               </div>
+            ) : null}
+            {remoteUpdateAvailable ? (
+              <RemoteUpdateBanner
+                label="A lista de clientes ou empresas mudou em outra aba — pode estar desatualizada aqui."
+                onRefresh={refreshClientsAndProfiles}
+              />
             ) : null}
             {profilesLoading || budgetsLoading ? (
               <div className="mb-4 rounded-xl border border-white/10 bg-white/4 px-4 py-3 text-sm text-slate-300">

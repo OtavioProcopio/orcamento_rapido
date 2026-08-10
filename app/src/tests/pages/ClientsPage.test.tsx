@@ -7,14 +7,18 @@ import { ClientsPage } from "../../pages/ClientsPage";
 const addClientMock = jest.fn();
 const updateClientMock = jest.fn();
 const deleteClientMock = jest.fn();
+const refreshClientsMock = jest.fn();
 let clients: Client[] = [];
 let budgets: Budget[] = [];
+let clientsRemoteUpdateAvailable = false;
 
 jest.mock("../../hooks/useClients", () => ({
   useClients: () => ({
     clients,
     loading: false,
     error: null,
+    remoteUpdateAvailable: clientsRemoteUpdateAvailable,
+    refreshClients: refreshClientsMock,
     addClient: addClientMock,
     updateClient: updateClientMock,
     deleteClient: deleteClientMock,
@@ -39,6 +43,7 @@ const makeClient = (overrides: Partial<Client> = {}): Client => ({
 beforeEach(() => {
   clients = [];
   budgets = [];
+  clientsRemoteUpdateAvailable = false;
   jest.clearAllMocks();
   addClientMock.mockResolvedValue([]);
   updateClientMock.mockResolvedValue([]);
@@ -209,5 +214,24 @@ describe("ClientsPage", () => {
     await user.click(within(dialog).getByRole("button", { name: "Confirmar" }));
 
     expect(deleteClientMock).toHaveBeenCalledWith("c1");
+  });
+
+  it("shows a banner when clients changed in another tab and refreshes on click", async () => {
+    clientsRemoteUpdateAvailable = true;
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <ClientsPage />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByText("O cadastro de clientes foi alterado em outra aba."),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Atualizar agora" }));
+
+    expect(refreshClientsMock).toHaveBeenCalledTimes(1);
   });
 });

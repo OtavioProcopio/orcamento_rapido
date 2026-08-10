@@ -7,14 +7,6 @@ describe("format", () => {
       expect(formatCurrency(100)).toContain("R$");
     });
 
-    it("formats USD", () => {
-      expect(formatCurrency(100, "USD")).toContain("100,00");
-    });
-
-    it("formats EUR", () => {
-      expect(formatCurrency(100, "EUR")).toContain("100,00");
-    });
-
     it("formats zero and negative values", () => {
       expect(formatCurrency(0)).toContain("0,00");
       expect(formatCurrency(-50)).toContain("50,00");

@@ -124,4 +124,23 @@ describe("useClients", () => {
       "client-delete-failed",
     );
   });
+
+  it("flags a remote update from another tab and clears it on refresh", async () => {
+    storageAdapterMock.getClients.mockResolvedValue([]);
+    const { result } = renderHook(() => useClients());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.remoteUpdateAvailable).toBe(false);
+
+    const otherTabChannel = new BroadcastChannel("orca-rapido-sync");
+    otherTabChannel.postMessage({ store: "clients" });
+
+    await waitFor(() => expect(result.current.remoteUpdateAvailable).toBe(true));
+
+    await act(async () => {
+      await result.current.refreshClients();
+    });
+    expect(result.current.remoteUpdateAvailable).toBe(false);
+
+    otherTabChannel.close();
+  });
 });

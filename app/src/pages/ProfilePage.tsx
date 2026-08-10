@@ -7,6 +7,7 @@ import { Button } from "../components/Button";
 import { ConfirmationDialog } from "../components/ConfirmationDialog";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
+import { RemoteUpdateBanner } from "../components/RemoteUpdateBanner";
 import { useBudget } from "../hooks/useBudget";
 import { useProfiles } from "../hooks/useProfiles";
 import type { MeiProfile } from "../types";
@@ -30,8 +31,16 @@ const fieldClassName =
 
 export const ProfilePage = () => {
   const navigate = useNavigate();
-  const { profiles, loading, error, addProfile, updateProfile, deleteProfile } =
-    useProfiles();
+  const {
+    profiles,
+    loading,
+    error,
+    remoteUpdateAvailable,
+    refreshProfiles,
+    addProfile,
+    updateProfile,
+    deleteProfile,
+  } = useProfiles();
   const { budgets } = useBudget();
   const [formOpen, setFormOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<MeiProfile | null>(null);
@@ -148,6 +157,16 @@ export const ProfilePage = () => {
       {error ? <p className="mt-4 text-sm text-rose-300">{error}</p> : null}
       {loading ? (
         <p className="mt-4 text-sm text-slate-400">Carregando empresas...</p>
+      ) : null}
+      {remoteUpdateAvailable ? (
+        <div className="mt-4">
+          <RemoteUpdateBanner
+            label="As empresas cadastradas foram alteradas em outra aba."
+            onRefresh={() => {
+              void refreshProfiles();
+            }}
+          />
+        </div>
       ) : null}
 
       {formOpen ? (

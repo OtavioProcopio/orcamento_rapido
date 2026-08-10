@@ -198,4 +198,26 @@ describe("useBudget", () => {
       "budget-import-failed",
     );
   });
+
+  it("flags a remote update from another tab and clears it on refresh", async () => {
+    storageAdapterMock.getBudgets.mockResolvedValue([]);
+    const { result } = renderHook(() => useBudget());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.remoteUpdateAvailable).toBe(false);
+
+    // BroadcastChannel de verdade (real navegador ou polyfill do Node em
+    // setupTests.ts), simulando outra aba — não passa por storageAdapter,
+    // que está mockado neste arquivo.
+    const otherTabChannel = new BroadcastChannel("orca-rapido-sync");
+    otherTabChannel.postMessage({ store: "budgets" });
+
+    await waitFor(() => expect(result.current.remoteUpdateAvailable).toBe(true));
+
+    await act(async () => {
+      await result.current.refreshBudgets();
+    });
+    expect(result.current.remoteUpdateAvailable).toBe(false);
+
+    otherTabChannel.close();
+  });
 });

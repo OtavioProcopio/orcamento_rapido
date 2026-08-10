@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "../components/Button";
 import { ConfirmationDialog } from "../components/ConfirmationDialog";
 import { EmptyState } from "../components/EmptyState";
+import { RemoteUpdateBanner } from "../components/RemoteUpdateBanner";
 import { useBudget } from "../hooks/useBudget";
 import { useClients } from "../hooks/useClients";
 import { useProfiles } from "../hooks/useProfiles";
@@ -30,6 +31,8 @@ export const HomePage = () => {
     budgets,
     loading,
     error,
+    remoteUpdateAvailable,
+    refreshBudgets,
     clearBudgets,
     deleteBudget,
   } = useBudget();
@@ -208,6 +211,14 @@ export const HomePage = () => {
         </div>
 
         <section className="mt-8">
+          {remoteUpdateAvailable ? (
+            <RemoteUpdateBanner
+              label="Os orçamentos foram alterados em outra aba."
+              onRefresh={() => {
+                void refreshBudgets();
+              }}
+            />
+          ) : null}
           {clientFilterId ? (
             <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-blue-400/20 bg-blue-400/10 px-4 py-3 text-sm text-blue-100">
               <span>

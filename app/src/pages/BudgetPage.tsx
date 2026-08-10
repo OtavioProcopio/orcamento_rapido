@@ -14,6 +14,7 @@ import { BudgetPreview } from "../components/BudgetPreview";
 import type { Budget, BudgetClient, BudgetItem, Client, MeiProfile } from "../types";
 import { budgetSchema } from "../utils/budgetSchema";
 import { BUDGET_STATUSES, getBudgetStatusLabel } from "../utils/budgetStatus";
+import { trackEvent } from "../utils/analytics";
 import { maskCpfCnpj } from "../utils/document";
 import { maskPhone } from "../utils/maskPhone";
 
@@ -512,6 +513,7 @@ export function BudgetPage() {
       effectiveClientData = { ...clientData, clientId: newClient.id };
       setClientData(effectiveClientData);
       setSaveAsNewClient(false);
+      trackEvent("client-created");
     }
 
     const budget = {
@@ -522,11 +524,13 @@ export function BudgetPage() {
 
     if (savedBudgetId) {
       await updateBudget(savedBudgetId, budget);
+      trackEvent("budget-updated");
       return budget;
     }
 
     await addBudget(budget);
     setSavedBudgetId(budget.id);
+    trackEvent("budget-created");
     return budget;
   };
 

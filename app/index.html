@@ -15,6 +15,13 @@
       otavioprocopio.goatcounter.com (beacon) são só pro contador de
       visitas anônimo — nenhum dado de orçamento/cliente passa por ali,
       só isso justifica abrir uma exceção no default-src 'self'.
+
+      no_onload desliga a contagem automática do count.js: como o app é
+      uma SPA (troca de rota não recarrega a página), a contagem
+      automática só veria o hit inicial e ignoraria toda navegação
+      seguinte. src/utils/analytics.ts chama window.goatcounter.count()
+      manualmente a cada troca de rota (via useLocation em App.tsx) e em
+      eventos-chave, cobrindo inclusive o carregamento inicial.
     -->
     <meta
       http-equiv="Content-Security-Policy"
@@ -27,6 +34,7 @@
     <script type="module" src="/src/main.tsx"></script>
     <script
       data-goatcounter="https://otavioprocopio.goatcounter.com/count"
+      data-goatcounter-settings='{"no_onload": true}'
       async
       src="https://gc.zgo.at/count.js"
     ></script>

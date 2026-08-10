@@ -10,6 +10,7 @@ import { formatCurrency, formatDate } from "../utils/format";
 import { printBudget as openBudgetPrintWindow } from "../utils/printBudget";
 import { buildBudgetWhatsAppShareUrl } from "../utils/whatsapp";
 import { getBudgetStatusLabel } from "../utils/budgetStatus";
+import { trackEvent } from "../utils/analytics";
 import type { Budget, MeiProfile } from "../types";
 
 const BLANK_PROFILE: MeiProfile = {
@@ -108,6 +109,8 @@ export const HomePage = () => {
       setPrintError(
         "Não foi possível abrir a janela de impressão. Verifique se o navegador está bloqueando pop-ups.",
       );
+    } else {
+      trackEvent("print-budget");
     }
   };
 
@@ -117,6 +120,7 @@ export const HomePage = () => {
       resolveProfileForBudget(budget).companyName,
     );
     window.open(url, "_blank", "noopener,noreferrer");
+    trackEvent("share-whatsapp");
   };
 
   const handleDeleteBudget = (budgetId: string) => {

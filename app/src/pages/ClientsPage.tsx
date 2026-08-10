@@ -12,6 +12,7 @@ import { useClients } from "../hooks/useClients";
 import { maskCpfCnpj } from "../utils/document";
 import { maskPhone, unmaskPhone } from "../utils/maskPhone";
 import { clientSchema, type ClientFormValues } from "../utils/clientSchema";
+import { trackEvent } from "../utils/analytics";
 import type { Client } from "../types";
 
 const fieldClassName =
@@ -116,6 +117,7 @@ export const ClientsPage = () => {
         createdAt: new Date().toISOString(),
         ...patch,
       });
+      trackEvent("client-created");
     }
 
     closeForm();

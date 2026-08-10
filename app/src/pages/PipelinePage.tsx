@@ -8,6 +8,7 @@ import { useClients } from "../hooks/useClients";
 import { useProfiles } from "../hooks/useProfiles";
 import { formatCurrency } from "../utils/format";
 import { BUDGET_STATUSES, getBudgetStatusLabel } from "../utils/budgetStatus";
+import { trackEvent } from "../utils/analytics";
 import type { Budget } from "../types";
 
 const columnAccent: Record<Budget["status"], string> = {
@@ -85,6 +86,7 @@ export const PipelinePage = () => {
     try {
       await updateBudget(budgetId, { status });
       setMoveError(null);
+      trackEvent("pipeline-status-change");
     } catch {
       setMoveError("Não foi possível mover o orçamento. Tente novamente.");
     }

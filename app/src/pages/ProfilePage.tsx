@@ -14,6 +14,7 @@ import { fileToBase64, validateLogoFile } from "../utils/file";
 import { maskCpfCnpj } from "../utils/document";
 import { maskPhone, unmaskPhone } from "../utils/maskPhone";
 import { profileSchema, type ProfileFormValues } from "../utils/profileSchema";
+import { trackEvent } from "../utils/analytics";
 
 const DEFAULT_VALUES: ProfileFormValues = {
   companyName: "",
@@ -96,6 +97,7 @@ export const ProfilePage = () => {
         createdAt: new Date().toISOString(),
         ...patch,
       });
+      trackEvent("profile-created");
     }
 
     closeForm();

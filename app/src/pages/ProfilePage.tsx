@@ -10,6 +10,7 @@ import { PageHeader } from "../components/PageHeader";
 import { RemoteUpdateBanner } from "../components/RemoteUpdateBanner";
 import { useBudget } from "../hooks/useBudget";
 import { useProfiles } from "../hooks/useProfiles";
+import { usePageMetadata } from "../hooks/usePageMetadata";
 import type { MeiProfile } from "../types";
 import { fileToBase64, validateLogoFile } from "../utils/file";
 import { maskCpfCnpj } from "../utils/document";
@@ -30,6 +31,12 @@ const fieldClassName =
   "mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10";
 
 export const ProfilePage = () => {
+  usePageMetadata({
+    title: "Minha empresa — Orça Rápido",
+    description:
+      "Cadastre os dados da sua empresa ou MEI: nome, contato, PIX e logotipo, usados em todos os seus orçamentos.",
+  });
+
   const navigate = useNavigate();
   const {
     profiles,

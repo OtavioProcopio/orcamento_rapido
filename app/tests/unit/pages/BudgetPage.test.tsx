@@ -1,7 +1,7 @@
 import { MemoryRouter } from "react-router-dom";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { BudgetPage } from "../../pages/BudgetPage";
+import { BudgetPage } from "../../../src/pages/BudgetPage";
 
 const PROFILE_KEY = "@OrcaRapido:mei_profile";
 
@@ -530,6 +530,21 @@ describe("BudgetPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Atualizar agora" }));
     otherTabChannel.close();
+  });
+
+  it("sets a specific document title and meta description for the builder route", () => {
+    // Arrange & Act
+    render(
+      <MemoryRouter>
+        <BudgetPage />
+      </MemoryRouter>,
+    );
+
+    // Assert
+    expect(document.title).toBe("Novo orçamento — Orça Rápido");
+    expect(
+      document.querySelector('meta[name="description"]')?.getAttribute("content"),
+    ).toBeTruthy();
   });
 
   describe("with multiple registered companies", () => {

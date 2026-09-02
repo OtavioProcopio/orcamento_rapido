@@ -29,7 +29,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['**/src/tests/**/*.{ts,tsx}'],
+    files: ['**/src/tests/**/*.{ts,tsx}', '**/tests/unit/**/*.{ts,tsx}'],
     rules: {
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://otavioprocopio.github.io/orcamento_rapido/sitemap.xml

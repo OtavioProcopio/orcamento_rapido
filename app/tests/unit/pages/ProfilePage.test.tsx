@@ -1,9 +1,9 @@
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Budget, MeiProfile } from "../../types";
-import { ProfilePage } from "../../pages/ProfilePage";
-import { fileToBase64, validateLogoFile } from "../../utils/file";
+import type { Budget, MeiProfile } from "../../../src/types";
+import { ProfilePage } from "../../../src/pages/ProfilePage";
+import { fileToBase64, validateLogoFile } from "../../../src/utils/file";
 
 const addProfileMock = jest.fn();
 const updateProfileMock = jest.fn();
@@ -13,7 +13,7 @@ let profiles: MeiProfile[] = [];
 let budgets: Budget[] = [];
 let profilesRemoteUpdateAvailable = false;
 
-jest.mock("../../hooks/useProfiles", () => ({
+jest.mock("../../../src/hooks/useProfiles", () => ({
   useProfiles: () => ({
     profiles,
     loading: false,
@@ -26,7 +26,7 @@ jest.mock("../../hooks/useProfiles", () => ({
   }),
 }));
 
-jest.mock("../../hooks/useBudget", () => ({
+jest.mock("../../../src/hooks/useBudget", () => ({
   useBudget: () => ({
     budgets,
     loading: false,
@@ -34,7 +34,7 @@ jest.mock("../../hooks/useBudget", () => ({
   }),
 }));
 
-jest.mock("../../utils/file", () => ({
+jest.mock("../../../src/utils/file", () => ({
   fileToBase64: jest.fn(() => "abc"),
   validateLogoFile: jest.fn(() => null),
   MAX_LOGO_SIZE_BYTES: 1_000_000,
@@ -296,5 +296,20 @@ describe("ProfilePage", () => {
     await user.click(screen.getByRole("button", { name: "Atualizar agora" }));
 
     expect(refreshProfilesMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("sets a specific document title and meta description for the profile route", () => {
+    // Arrange & Act
+    render(
+      <MemoryRouter>
+        <ProfilePage />
+      </MemoryRouter>,
+    );
+
+    // Assert
+    expect(document.title).toBe("Minha empresa — Orça Rápido");
+    expect(
+      document.querySelector('meta[name="description"]')?.getAttribute("content"),
+    ).toBeTruthy();
   });
 });

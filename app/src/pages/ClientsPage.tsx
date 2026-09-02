@@ -10,6 +10,7 @@ import { PageHeader } from "../components/PageHeader";
 import { RemoteUpdateBanner } from "../components/RemoteUpdateBanner";
 import { useBudget } from "../hooks/useBudget";
 import { useClients } from "../hooks/useClients";
+import { usePageMetadata } from "../hooks/usePageMetadata";
 import { maskCpfCnpj } from "../utils/document";
 import { maskPhone, unmaskPhone } from "../utils/maskPhone";
 import { clientSchema, type ClientFormValues } from "../utils/clientSchema";
@@ -29,6 +30,12 @@ const DEFAULT_VALUES: ClientFormValues = {
 };
 
 export const ClientsPage = () => {
+  usePageMetadata({
+    title: "Clientes — Orça Rápido",
+    description:
+      "Cadastre e organize os dados dos seus clientes para agilizar a criação de orçamentos.",
+  });
+
   const navigate = useNavigate();
   const {
     clients,

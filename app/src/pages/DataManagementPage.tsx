@@ -10,8 +10,15 @@ import {
 } from "../utils/backup";
 import { storageAdapter } from "../storage/storageAdapter";
 import { downloadBlob } from "../utils/download";
+import { usePageMetadata } from "../hooks/usePageMetadata";
 
 export function DataManagementPage() {
+  usePageMetadata({
+    title: "Backup de dados — Orça Rápido",
+    description:
+      "Exporte ou importe seus orçamentos e clientes em backup local, com segurança.",
+  });
+
   const [importStatus, setImportStatus] = useState<{
     message: string;
     type: "success" | "error";

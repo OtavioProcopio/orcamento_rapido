@@ -1,0 +1,106 @@
+{
+  "demanda": "aproveite o serviço feito e continue. resolva tudo isso! otimize! melhore!",
+  "feature": "specs/001-seo-mobile-profissional",
+  "branch": "feature/seo-mobile-profissional",
+  "etapa": "deliver",
+  "status": "em_andamento",
+  "retentativas": 0,
+  "retentativas_totais": 1,
+  "etapa_mais_avancada": 9,
+  "max_retentativas": 15,
+  "aberto_em": "2026-09-01T20:03:49-03:00",
+  "historico": [
+    {
+      "etapa": "constitution",
+      "veredito": "ok",
+      "alvo": null,
+      "motivo": "",
+      "em": "2026-09-01T20:10:16-03:00"
+    },
+    {
+      "etapa": "specify",
+      "veredito": "ok",
+      "alvo": null,
+      "motivo": "",
+      "em": "2026-09-01T20:12:00-03:00"
+    },
+    {
+      "etapa": "clarify",
+      "veredito": "ok",
+      "alvo": null,
+      "motivo": "",
+      "em": "2026-09-01T20:16:39-03:00"
+    },
+    {
+      "etapa": "plan",
+      "veredito": "ok",
+      "alvo": null,
+      "motivo": "",
+      "em": "2026-09-01T20:23:22-03:00"
+    },
+    {
+      "etapa": "checklist",
+      "veredito": "ok",
+      "alvo": null,
+      "motivo": "",
+      "em": "2026-09-01T20:24:03-03:00"
+    },
+    {
+      "etapa": "tasks",
+      "veredito": "ok",
+      "alvo": null,
+      "motivo": "",
+      "em": "2026-09-01T20:26:07-03:00"
+    },
+    {
+      "etapa": "analyze",
+      "veredito": "nook",
+      "alvo": "plan",
+      "motivo": "canonical estático em todas as rotas contradiz o objetivo de indexação por rota; precisa virar canonical dinâmico por rota no usePageMetadata",
+      "em": "2026-09-01T20:28:03-03:00"
+    },
+    {
+      "etapa": "plan",
+      "veredito": "ok",
+      "alvo": null,
+      "motivo": "",
+      "em": "2026-09-01T20:29:56-03:00"
+    },
+    {
+      "etapa": "checklist",
+      "veredito": "ok",
+      "alvo": null,
+      "motivo": "",
+      "em": "2026-09-01T20:30:04-03:00"
+    },
+    {
+      "etapa": "tasks",
+      "veredito": "ok",
+      "alvo": null,
+      "motivo": "",
+      "em": "2026-09-01T20:30:09-03:00"
+    },
+    {
+      "etapa": "analyze",
+      "veredito": "ok",
+      "alvo": null,
+      "motivo": "",
+      "em": "2026-09-01T20:30:22-03:00"
+    },
+    {
+      "etapa": "implement",
+      "veredito": "ok",
+      "alvo": null,
+      "motivo": "",
+      "em": "2026-09-01T21:50:58-03:00"
+    },
+    {
+      "etapa": "converge",
+      "veredito": "ok",
+      "alvo": null,
+      "motivo": "",
+      "em": "2026-09-01T21:55:42-03:00"
+    }
+  ],
+  "motivo_status": ""
+}

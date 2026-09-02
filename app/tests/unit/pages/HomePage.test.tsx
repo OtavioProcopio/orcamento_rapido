@@ -1,9 +1,9 @@
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Budget, Client, MeiProfile } from "../../types";
-import { HomePage } from "../../pages/HomePage";
-import { printBudget } from "../../utils/printBudget";
+import type { Budget, Client, MeiProfile } from "../../../src/types";
+import { HomePage } from "../../../src/pages/HomePage";
+import { printBudget } from "../../../src/utils/printBudget";
 
 const clearBudgetsMock = jest.fn();
 const deleteBudgetMock = jest.fn();
@@ -13,7 +13,7 @@ let clients: Client[] = [];
 let profiles: MeiProfile[] = [];
 let budgetsRemoteUpdateAvailable = false;
 
-jest.mock("../../hooks/useBudget", () => ({
+jest.mock("../../../src/hooks/useBudget", () => ({
   useBudget: () => ({
     budgets,
     loading: false,
@@ -25,7 +25,7 @@ jest.mock("../../hooks/useBudget", () => ({
   }),
 }));
 
-jest.mock("../../hooks/useProfiles", () => ({
+jest.mock("../../../src/hooks/useProfiles", () => ({
   useProfiles: () => ({
     profiles,
     loading: false,
@@ -33,7 +33,7 @@ jest.mock("../../hooks/useProfiles", () => ({
   }),
 }));
 
-jest.mock("../../hooks/useClients", () => ({
+jest.mock("../../../src/hooks/useClients", () => ({
   useClients: () => ({
     clients,
     loading: false,
@@ -41,7 +41,7 @@ jest.mock("../../hooks/useClients", () => ({
   }),
 }));
 
-jest.mock("../../utils/printBudget", () => ({
+jest.mock("../../../src/utils/printBudget", () => ({
   printBudget: jest.fn(),
 }));
 
@@ -435,5 +435,20 @@ describe("HomePage", () => {
     await user.click(screen.getByRole("button", { name: "Atualizar agora" }));
 
     expect(refreshBudgetsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("sets a specific document title and meta description for the dashboard route", () => {
+    // Arrange & Act
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>,
+    );
+
+    // Assert
+    expect(document.title).toBe("Meus orçamentos — Orça Rápido");
+    expect(
+      document.querySelector('meta[name="description"]')?.getAttribute("content"),
+    ).toBeTruthy();
   });
 });

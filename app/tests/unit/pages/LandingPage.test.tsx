@@ -1,8 +1,8 @@
 import { MemoryRouter } from "react-router-dom";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { LandingPage } from "../../pages/LandingPage";
-import type { Budget, MeiProfile } from "../../types";
+import { LandingPage } from "../../../src/pages/LandingPage";
+import type { Budget, MeiProfile } from "../../../src/types";
 
 const navigateMock = jest.fn();
 
@@ -21,7 +21,7 @@ jest.mock("react-router-dom", () => {
   };
 });
 
-jest.mock("../../hooks/useBudget", () => ({
+jest.mock("../../../src/hooks/useBudget", () => ({
   useBudget: () => ({
     budgets,
     loading: budgetsLoading,
@@ -29,7 +29,7 @@ jest.mock("../../hooks/useBudget", () => ({
   }),
 }));
 
-jest.mock("../../hooks/useProfiles", () => ({
+jest.mock("../../../src/hooks/useProfiles", () => ({
   useProfiles: () => ({
     profiles,
     loading: profilesLoading,
@@ -120,5 +120,22 @@ describe("LandingPage", () => {
     expect(screen.getByText(/Segurança e LGPD/i)).toBeInTheDocument();
     expect(screen.getByText(/Como funciona/i)).toBeInTheDocument();
     expect(screen.getByText(/Os dados operacionais ficam armazenados localmente/i)).toBeInTheDocument();
+  });
+
+  it("sets a specific document title and meta description for the home route", () => {
+    // Arrange & Act
+    render(
+      <MemoryRouter>
+        <LandingPage />
+      </MemoryRouter>,
+    );
+
+    // Assert
+    expect(document.title).toBe(
+      "Orça Rápido — Orçamentos profissionais para MEIs e autônomos",
+    );
+    expect(
+      document.querySelector('meta[name="description"]')?.getAttribute("content"),
+    ).toBeTruthy();
   });
 });

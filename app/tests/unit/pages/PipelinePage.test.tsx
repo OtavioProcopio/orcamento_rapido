@@ -1,8 +1,8 @@
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Budget, Client, MeiProfile } from "../../types";
-import { PipelinePage } from "../../pages/PipelinePage";
+import type { Budget, Client, MeiProfile } from "../../../src/types";
+import { PipelinePage } from "../../../src/pages/PipelinePage";
 
 const updateBudgetMock = jest.fn();
 const refreshBudgetsMock = jest.fn();
@@ -13,7 +13,7 @@ let budgetsLoading = false;
 let budgetsError: string | null = null;
 let budgetsRemoteUpdateAvailable = false;
 
-jest.mock("../../hooks/useBudget", () => ({
+jest.mock("../../../src/hooks/useBudget", () => ({
   useBudget: () => ({
     budgets,
     loading: budgetsLoading,
@@ -24,7 +24,7 @@ jest.mock("../../hooks/useBudget", () => ({
   }),
 }));
 
-jest.mock("../../hooks/useClients", () => ({
+jest.mock("../../../src/hooks/useClients", () => ({
   useClients: () => ({
     clients,
     loading: false,
@@ -32,7 +32,7 @@ jest.mock("../../hooks/useClients", () => ({
   }),
 }));
 
-jest.mock("../../hooks/useProfiles", () => ({
+jest.mock("../../../src/hooks/useProfiles", () => ({
   useProfiles: () => ({
     profiles,
     loading: false,
@@ -396,5 +396,16 @@ describe("PipelinePage", () => {
     await user.click(screen.getByRole("button", { name: "Atualizar agora" }));
 
     expect(refreshBudgetsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("sets a specific document title and meta description for the pipeline route", () => {
+    // Arrange & Act
+    renderPipeline();
+
+    // Assert
+    expect(document.title).toBe("Funil de vendas — Orça Rápido");
+    expect(
+      document.querySelector('meta[name="description"]')?.getAttribute("content"),
+    ).toBeTruthy();
   });
 });

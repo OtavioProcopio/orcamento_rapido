@@ -7,6 +7,7 @@ import { RemoteUpdateBanner } from "../components/RemoteUpdateBanner";
 import { useBudget } from "../hooks/useBudget";
 import { useClients } from "../hooks/useClients";
 import { useProfiles } from "../hooks/useProfiles";
+import { usePageMetadata } from "../hooks/usePageMetadata";
 import { formatCurrency } from "../utils/format";
 import { BUDGET_STATUSES, getBudgetStatusLabel } from "../utils/budgetStatus";
 import { trackEvent } from "../utils/analytics";
@@ -21,6 +22,12 @@ const columnAccent: Record<Budget["status"], string> = {
 };
 
 export const PipelinePage = () => {
+  usePageMetadata({
+    title: "Funil de vendas — Orça Rápido",
+    description:
+      "Acompanhe seus orçamentos por etapa: rascunho, enviado, aprovado, recusado ou pago.",
+  });
+
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const {

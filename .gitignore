@@ -43,3 +43,7 @@ Thumbs.db
 !.vscode/launch.json
 !.vscode/extensions.json
 .idea/
+
+# Byte Union — método da organização (nao versiona)
+/.specify/memory/constitution.md
+/CLAUDE.md

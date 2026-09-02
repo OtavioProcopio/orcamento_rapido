@@ -1,8 +1,11 @@
 import { Link } from "react-router-dom";
+import { usePageMetadata } from "../hooks/usePageMetadata";
 
 const sections = {
   privacy: {
     title: "Política de Privacidade",
+    description:
+      "Como o Orça Rápido trata os seus dados: tudo fica armazenado localmente, no seu navegador.",
     body: [
       "O Orça Rápido funciona localmente no seu navegador nesta fase. Não criamos conta, não recebemos seus orçamentos e não sincronizamos dados com servidores.",
       "Os dados de perfil, clientes e orçamentos ficam salvos no IndexedDB do navegador usado no dispositivo. Quem tiver acesso ao mesmo navegador poderá visualizar essas informações.",
@@ -11,6 +14,8 @@ const sections = {
   },
   terms: {
     title: "Termos de Uso",
+    description:
+      "Termos de uso do Orça Rápido, a ferramenta gratuita de orçamentos para MEIs e autônomos.",
     body: [
       "A ferramenta ajuda a criar orçamentos comerciais, mas o usuário é responsável por revisar valores, dados do cliente, condições de pagamento e informações legais antes do envio.",
       "O app é fornecido sem garantia de disponibilidade contínua, sincronização automática ou recuperação remota de dados nesta fase sem backend.",
@@ -19,6 +24,8 @@ const sections = {
   },
   storage: {
     title: "Aviso de Armazenamento Local",
+    description:
+      "Entenda como e onde seus dados de orçamento ficam guardados no seu navegador.",
     body: [
       "Perfil e orçamentos são salvos apenas neste navegador, usando IndexedDB.",
       "Se o navegador for limpo, se o dispositivo for perdido ou se outra pessoa acessar a mesma sessão, os dados podem ser perdidos ou visualizados.",
@@ -29,6 +36,11 @@ const sections = {
 
 export function LegalPage({ type }: { type: keyof typeof sections }) {
   const content = sections[type];
+
+  usePageMetadata({
+    title: `${content.title} — Orça Rápido`,
+    description: content.description,
+  });
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 md:px-6">

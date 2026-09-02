@@ -1,17 +1,17 @@
 import { MemoryRouter } from "react-router-dom";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { DataManagementPage } from "../../pages/DataManagementPage";
-import { storageAdapter } from "../../storage/storageAdapter";
+import { DataManagementPage } from "../../../src/pages/DataManagementPage";
+import { storageAdapter } from "../../../src/storage/storageAdapter";
 import {
   createBudgetBackup,
   createBudgetCsv,
   parseBudgetBackup,
-} from "../../utils/backup";
-import { downloadBlob } from "../../utils/download";
-import type { Budget } from "../../types";
+} from "../../../src/utils/backup";
+import { downloadBlob } from "../../../src/utils/download";
+import type { Budget } from "../../../src/types";
 
-jest.mock("../../storage/storageAdapter", () => ({
+jest.mock("../../../src/storage/storageAdapter", () => ({
   storageAdapter: {
     getBudgets: jest.fn(),
     saveBudgets: jest.fn(),
@@ -22,7 +22,7 @@ jest.mock("../../storage/storageAdapter", () => ({
   },
 }));
 
-jest.mock("../../utils/backup", () => ({
+jest.mock("../../../src/utils/backup", () => ({
   createBudgetBackup: jest.fn(() => '{"app":"orca-rapido"}'),
   parseBudgetBackup: jest.fn(() => ({
     budgets: [
@@ -43,7 +43,7 @@ jest.mock("../../utils/backup", () => ({
   createBudgetCsv: jest.fn(() => "numero,status\n1,draft"),
 }));
 
-jest.mock("../../utils/download", () => ({
+jest.mock("../../../src/utils/download", () => ({
   downloadBlob: jest.fn(),
 }));
 
@@ -403,5 +403,20 @@ describe("DataManagementPage", () => {
     expect(
       await screen.findByText(/Erro ao ler o arquivo/),
     ).toBeInTheDocument();
+  });
+
+  it("sets a specific document title and meta description for the data route", () => {
+    // Arrange & Act
+    render(
+      <MemoryRouter>
+        <DataManagementPage />
+      </MemoryRouter>,
+    );
+
+    // Assert
+    expect(document.title).toBe("Backup de dados — Orça Rápido");
+    expect(
+      document.querySelector('meta[name="description"]')?.getAttribute("content"),
+    ).toBeTruthy();
   });
 });

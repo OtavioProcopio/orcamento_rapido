@@ -10,6 +10,7 @@ import {
 import { useBudget } from "../hooks/useBudget";
 import { useClients } from "../hooks/useClients";
 import { useProfiles } from "../hooks/useProfiles";
+import { usePageMetadata } from "../hooks/usePageMetadata";
 import { BudgetPreview } from "../components/BudgetPreview";
 import { RemoteUpdateBanner } from "../components/RemoteUpdateBanner";
 import type { Budget, BudgetClient, BudgetItem, Client, MeiProfile } from "../types";
@@ -95,6 +96,12 @@ function Toggle({
 }
 
 export function BudgetPage() {
+  usePageMetadata({
+    title: "Novo orçamento — Orça Rápido",
+    description:
+      "Monte um orçamento profissional com itens, descontos e condições de pagamento, com preview em tempo real.",
+  });
+
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const {
@@ -577,7 +584,7 @@ export function BudgetPage() {
   };
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-slate-950 font-sans text-slate-100">
+    <div className="flex flex-col bg-slate-950 font-sans text-slate-100 lg:h-screen lg:overflow-hidden">
       {/* 4. A Barra Superior (Header de Ação) */}
       <header className="sticky top-0 z-20 flex h-18 shrink-0 items-center justify-between border-b border-white/10 bg-slate-950/95 px-6 shadow-[0_14px_40px_rgba(2,6,23,0.35)] backdrop-blur">
         <div className="flex items-center gap-4">
@@ -621,9 +628,9 @@ export function BudgetPage() {
       </header>
 
       {/* 1. O Layout Global (Tela Dividida) */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden h-[calc(100vh-72px)] relative">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 relative lg:overflow-hidden lg:h-[calc(100vh-72px)]">
         {/* Lado Esquerdo (Controles - 5 colunas) */}
-        <aside className="custom-scrollbar overflow-y-auto border-r border-white/10 bg-slate-950 p-6 lg:col-span-5">
+        <aside className="custom-scrollbar border-r border-white/10 bg-slate-950 p-6 lg:col-span-5 lg:overflow-y-auto">
           <div className="max-w-xl mx-auto flex flex-col space-y-2">
             {submitError || budgetsError || profilesError ? (
               <div className="mb-4 rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
@@ -1289,8 +1296,8 @@ export function BudgetPage() {
         </aside>
 
         {/* Lado Direito (Preview - 7 colunas) com fundo escuro e sticky behavior */}
-        <main className="custom-scrollbar relative z-0 flex h-full w-full justify-center overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.12),transparent_35%),linear-gradient(180deg,#0f172a,#020617)] lg:col-span-7">
-          <div className="w-full py-8 px-4 sm:px-8 xl:px-12 flex justify-center items-start min-h-[calc(100vh-72px)]">
+        <main className="custom-scrollbar relative z-0 flex w-full justify-center bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.12),transparent_35%),linear-gradient(180deg,#0f172a,#020617)] lg:col-span-7 lg:h-full lg:overflow-y-auto">
+          <div className="w-full py-8 px-4 sm:px-8 xl:px-12 flex justify-center items-start lg:min-h-[calc(100vh-72px)]">
             <BudgetPreview
               profile={currentProfile}
               proposalNumber={proposalData.number}

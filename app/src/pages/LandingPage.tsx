@@ -3,11 +3,18 @@ import { Link, useNavigate } from "react-router-dom";
 import logoImage from "../assets/logo.svg";
 import { useBudget } from "../hooks/useBudget";
 import { useProfiles } from "../hooks/useProfiles";
+import { usePageMetadata } from "../hooks/usePageMetadata";
 
 const sectionCardClassName =
   "rounded-[28px] border border-white/10 bg-white/6 p-6 shadow-[0_24px_70px_rgba(2,6,23,0.22)] backdrop-blur-xl";
 
 export function LandingPage() {
+  usePageMetadata({
+    title: "Orça Rápido — Orçamentos profissionais para MEIs e autônomos",
+    description:
+      "Crie, imprima e acompanhe orçamentos profissionais em minutos. Grátis, sem cadastro complicado e com seus dados guardados só no seu navegador.",
+  });
+
   const navigate = useNavigate();
   const { budgets, loading: budgetsLoading } = useBudget();
   const { profiles, loading: profilesLoading } = useProfiles();

@@ -1,8 +1,8 @@
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Budget, Client } from "../../types";
-import { ClientsPage } from "../../pages/ClientsPage";
+import type { Budget, Client } from "../../../src/types";
+import { ClientsPage } from "../../../src/pages/ClientsPage";
 
 const addClientMock = jest.fn();
 const updateClientMock = jest.fn();
@@ -12,7 +12,7 @@ let clients: Client[] = [];
 let budgets: Budget[] = [];
 let clientsRemoteUpdateAvailable = false;
 
-jest.mock("../../hooks/useClients", () => ({
+jest.mock("../../../src/hooks/useClients", () => ({
   useClients: () => ({
     clients,
     loading: false,
@@ -25,7 +25,7 @@ jest.mock("../../hooks/useClients", () => ({
   }),
 }));
 
-jest.mock("../../hooks/useBudget", () => ({
+jest.mock("../../../src/hooks/useBudget", () => ({
   useBudget: () => ({
     budgets,
     loading: false,
@@ -233,5 +233,20 @@ describe("ClientsPage", () => {
     await user.click(screen.getByRole("button", { name: "Atualizar agora" }));
 
     expect(refreshClientsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("sets a specific document title and meta description for the clients route", () => {
+    // Arrange & Act
+    render(
+      <MemoryRouter>
+        <ClientsPage />
+      </MemoryRouter>,
+    );
+
+    // Assert
+    expect(document.title).toBe("Clientes — Orça Rápido");
+    expect(
+      document.querySelector('meta[name="description"]')?.getAttribute("content"),
+    ).toBeTruthy();
   });
 });

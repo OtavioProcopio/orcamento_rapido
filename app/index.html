@@ -2,8 +2,60 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+    <link rel="apple-touch-icon" href="%BASE_URL%apple-touch-icon.png" />
+    <link rel="manifest" href="%BASE_URL%manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0D2366" />
+
+    <title>Orça Rápido — Orçamentos profissionais para MEIs e autônomos</title>
+    <meta
+      name="description"
+      content="Crie, imprima e acompanhe orçamentos profissionais em minutos. Grátis, sem cadastro complicado e com seus dados guardados só no seu navegador."
+    />
+    <link rel="canonical" href="https://otavioprocopio.github.io/orcamento_rapido/" />
+
+    <!--
+      Open Graph e Twitter Card ficam estáticos, só para a rota "/": os
+      crawlers de prévia de link (WhatsApp, Twitter, Facebook, LinkedIn) não
+      rodam JavaScript, então precisam achar o conteúdo já pronto aqui. O
+      título/descrição por rota (dinâmico) fica a cargo de
+      src/hooks/usePageMetadata.ts, que também sobrescreve o <link
+      rel="canonical"> acima para cada rota — só o valor de pré-render fica
+      fixo em "/".
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Orça Rápido" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta
+      property="og:title"
+      content="Orça Rápido — Orçamentos profissionais para MEIs e autônomos"
+    />
+    <meta
+      property="og:description"
+      content="Crie, imprima e acompanhe orçamentos profissionais em minutos. Grátis, sem cadastro complicado e com seus dados guardados só no seu navegador."
+    />
+    <meta property="og:url" content="https://otavioprocopio.github.io/orcamento_rapido/" />
+    <meta
+      property="og:image"
+      content="https://otavioprocopio.github.io/orcamento_rapido/og-image.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Orça Rápido — Orçamentos profissionais para MEIs e autônomos"
+    />
+    <meta
+      name="twitter:description"
+      content="Crie, imprima e acompanhe orçamentos profissionais em minutos. Grátis, sem cadastro complicado e com seus dados guardados só no seu navegador."
+    />
+    <meta
+      name="twitter:image"
+      content="https://otavioprocopio.github.io/orcamento_rapido/og-image.png"
+    />
     <!--
       App 100% client-side, sem chamadas a APIs externas: default-src 'self'
       cobre o essencial. style-src precisa de 'unsafe-inline' pelos poucos
@@ -27,7 +79,6 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self' https://gc.zgo.at; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://otavioprocopio.goatcounter.com; font-src 'self'; connect-src 'self' https://otavioprocopio.goatcounter.com; object-src 'none'; base-uri 'self'; form-action 'self';"
     />
-    <title>Orca Rapido</title>
   </head>
   <body>
     <div id="root"></div>

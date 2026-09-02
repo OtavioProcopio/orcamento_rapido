@@ -7,6 +7,7 @@ import { RemoteUpdateBanner } from "../components/RemoteUpdateBanner";
 import { useBudget } from "../hooks/useBudget";
 import { useClients } from "../hooks/useClients";
 import { useProfiles } from "../hooks/useProfiles";
+import { usePageMetadata } from "../hooks/usePageMetadata";
 import { formatCurrency, formatDate } from "../utils/format";
 import { printBudget as openBudgetPrintWindow } from "../utils/printBudget";
 import { buildBudgetWhatsAppShareUrl } from "../utils/whatsapp";
@@ -25,6 +26,12 @@ const BLANK_PROFILE: MeiProfile = {
 };
 
 export const HomePage = () => {
+  usePageMetadata({
+    title: "Meus orçamentos — Orça Rápido",
+    description:
+      "Veja, edite, imprima e acompanhe todos os orçamentos que você já criou.",
+  });
+
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const {

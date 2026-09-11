@@ -62,40 +62,27 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 
-  /* Light Theme Variables */
-  --ink: #1e1f21;
-  --ink-soft: #4b4f56;
-  --surface: #ffffff;
-  --surface-muted: #f2f0eb;
-  --surface-strong: #f8f6f1;
-  --border: rgba(30, 31, 33, 0.1);
-  --accent: #0f5ef5;
-  --accent-strong: #0a3cab;
-  --accent-soft: #dfe7ff;
-  --success: #1a9e74;
-  --shadow: 0 20px 40px rgba(15, 15, 15, 0.12);
-  --bg-gradient-start: #f7f4ec;
-  --bg-gradient-mid: #f3f0e9;
-  --bg-gradient-end: #f0ede6;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ink: #e2e8f0;
-    --ink-soft: #94a3b8;
-    --surface: #1e293b;
-    --surface-muted: #0f172a;
-    --surface-strong: #334155;
-    --border: rgba(255, 255, 255, 0.1);
-    --accent: #3b82f6;
-    --accent-strong: #60a5fa;
-    --accent-soft: #1e3a8a;
-    --success: #10b981;
-    --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-    --bg-gradient-start: #0f172a;
-    --bg-gradient-mid: #1e293b;
-    --bg-gradient-end: #1e293b;
-  }
+  /* Tema único e fixo: todo o app (Home, Builder, Clientes, Empresas,
+     Pipeline, Backup) já é construído em classes Tailwind escuras
+     (bg-slate-950, text-white, border-white/10 etc.) diretamente no JSX.
+     Ter essas variáveis alternando por prefers-color-scheme fazia o app
+     virar um mosaico claro/escuro dependendo do SO: cabeçalho e cartões
+     "vazios" claros flutuando sobre o resto do app, sempre escuro. Fixamos
+     um único tema escuro aqui para bater com o que já está em todo lugar. */
+  --ink: #f1f5f9;
+  --ink-soft: #94a3b8;
+  --surface: #0f172a;
+  --surface-muted: #020617;
+  --surface-strong: #1e293b;
+  --border: rgba(255, 255, 255, 0.1);
+  --accent: #3b82f6;
+  --accent-strong: #2563eb;
+  --accent-soft: rgba(59, 130, 246, 0.12);
+  --success: #10b981;
+  --shadow: 0 20px 50px rgba(2, 6, 23, 0.35);
+  --bg-gradient-start: #0b1220;
+  --bg-gradient-mid: #0f172a;
+  --bg-gradient-end: #020617;
 }
 
 body {

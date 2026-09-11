@@ -312,22 +312,16 @@ export const ClientsPage = () => {
 
       <div className="mt-8">
         {clients.length === 0 ? (
-          <div className="rounded-[28px] border border-dashed border-white/10 bg-white/3 p-3">
-            <EmptyState
-              title="Nenhum cliente cadastrado"
-              description="Cadastre clientes para reaproveitar os dados na hora de montar orçamentos."
-              action={
-                <Button onClick={openCreateForm}>Cadastrar Cliente</Button>
-              }
-            />
-          </div>
+          <EmptyState
+            title="Nenhum cliente cadastrado"
+            description="Cadastre clientes para reaproveitar os dados na hora de montar orçamentos."
+            action={<Button onClick={openCreateForm}>Cadastrar Cliente</Button>}
+          />
         ) : filteredClients.length === 0 ? (
-          <div className="rounded-[28px] border border-dashed border-white/10 bg-white/3 p-3">
-            <EmptyState
-              title="Nenhum resultado encontrado"
-              description="Tente buscar por outro nome, documento, telefone ou email."
-            />
-          </div>
+          <EmptyState
+            title="Nenhum resultado encontrado"
+            description="Tente buscar por outro nome, documento, telefone ou email."
+          />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filteredClients.map((client) => {

@@ -359,15 +359,11 @@ export const ProfilePage = () => {
 
       <div className="mt-8">
         {profiles.length === 0 ? (
-          <div className="rounded-[28px] border border-dashed border-white/10 bg-white/3 p-3">
-            <EmptyState
-              title="Nenhuma empresa cadastrada"
-              description="Cadastre os dados da sua empresa para começar a emitir orçamentos."
-              action={
-                <Button onClick={openCreateForm}>Cadastrar Empresa</Button>
-              }
-            />
-          </div>
+          <EmptyState
+            title="Nenhuma empresa cadastrada"
+            description="Cadastre os dados da sua empresa para começar a emitir orçamentos."
+            action={<Button onClick={openCreateForm}>Cadastrar Empresa</Button>}
+          />
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {profiles.map((profile) => {

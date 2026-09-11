@@ -9,17 +9,13 @@ import { useClients } from "../hooks/useClients";
 import { useProfiles } from "../hooks/useProfiles";
 import { usePageMetadata } from "../hooks/usePageMetadata";
 import { formatCurrency } from "../utils/format";
-import { BUDGET_STATUSES, getBudgetStatusLabel } from "../utils/budgetStatus";
+import {
+  BUDGET_STATUSES,
+  getBudgetStatusAccent,
+  getBudgetStatusLabel,
+} from "../utils/budgetStatus";
 import { trackEvent } from "../utils/analytics";
 import type { Budget } from "../types";
-
-const columnAccent: Record<Budget["status"], string> = {
-  draft: "border-slate-400/20 bg-slate-400/10 text-slate-200",
-  sent: "border-blue-400/20 bg-blue-400/10 text-blue-200",
-  approved: "border-emerald-400/20 bg-emerald-400/10 text-emerald-200",
-  rejected: "border-rose-400/20 bg-rose-400/10 text-rose-200",
-  paid: "border-cyan-400/20 bg-cyan-400/10 text-cyan-200",
-};
 
 export const PipelinePage = () => {
   usePageMetadata({
@@ -209,7 +205,7 @@ export const PipelinePage = () => {
       ) : null}
 
       {budgets.length === 0 ? (
-        <div className="mt-8 rounded-[28px] border border-dashed border-white/10 bg-white/3 p-3">
+        <div className="mt-8">
           <EmptyState
             title="Nenhum orçamento ainda"
             description="Crie um orçamento para acompanhá-lo aqui no pipeline."
@@ -239,7 +235,7 @@ export const PipelinePage = () => {
               >
                 <div className="flex items-center justify-between px-1">
                   <span
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${columnAccent[status]}`}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${getBudgetStatusAccent(status)}`}
                   >
                     {getBudgetStatusLabel(status)}
                   </span>

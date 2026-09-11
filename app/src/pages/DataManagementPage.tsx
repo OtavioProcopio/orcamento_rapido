@@ -143,7 +143,7 @@ export function DataManagementPage() {
       />
 
       <div className="mt-8 grid gap-8 md:grid-cols-2">
-        <section className="rounded-2xl border border-white/10 bg-slate-800 p-6 shadow-xl">
+        <section className="rounded-[28px] border border-white/10 bg-white/4 p-6 shadow-[0_20px_50px_rgba(2,6,23,0.25)]">
           <h2 className="mb-4 text-xl font-bold text-white">Exportar Dados</h2>
           <p className="mb-6 text-sm leading-6 text-slate-300">
             Baixe seus orçamentos. O formato JSON é para backup e restaurar
@@ -169,7 +169,7 @@ export function DataManagementPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-slate-800 p-6 shadow-xl">
+        <section className="rounded-[28px] border border-white/10 bg-white/4 p-6 shadow-[0_20px_50px_rgba(2,6,23,0.25)]">
           <h2 className="mb-4 text-xl font-bold text-white">Importar Dados</h2>
           <p className="mb-6 text-sm leading-6 text-slate-300">
             Traga seus dados de volta ao sistema do arquivo JSON de backup.{" "}

@@ -1,4 +1,8 @@
-import { BUDGET_STATUSES, getBudgetStatusLabel } from "../../utils/budgetStatus";
+import {
+  BUDGET_STATUSES,
+  getBudgetStatusAccent,
+  getBudgetStatusLabel,
+} from "../../utils/budgetStatus";
 
 describe("budgetStatus", () => {
   it("lists every status exactly once", () => {
@@ -19,5 +23,11 @@ describe("budgetStatus", () => {
       "Recusado",
       "Pago",
     ]);
+  });
+
+  it("gives every status a distinct accent class", () => {
+    const accents = BUDGET_STATUSES.map(getBudgetStatusAccent);
+
+    expect(new Set(accents).size).toBe(BUDGET_STATUSES.length);
   });
 });

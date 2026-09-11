@@ -11,7 +11,7 @@ import { usePageMetadata } from "../hooks/usePageMetadata";
 import { formatCurrency, formatDate } from "../utils/format";
 import { printBudget as openBudgetPrintWindow } from "../utils/printBudget";
 import { buildBudgetWhatsAppShareUrl } from "../utils/whatsapp";
-import { getBudgetStatusLabel } from "../utils/budgetStatus";
+import { getBudgetStatusAccent, getBudgetStatusLabel } from "../utils/budgetStatus";
 import { trackEvent } from "../utils/analytics";
 import type { Budget, MeiProfile } from "../types";
 
@@ -159,39 +159,41 @@ export const HomePage = () => {
   return (
     <>
       <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 lg:px-8">
-        <header className="flex flex-col gap-4 border-b border-white/10 pb-6 md:flex-row md:items-end md:justify-between">
+        <header className="flex flex-col gap-6 border-b border-white/10 pb-6 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-medium uppercase tracking-[0.24em] text-slate-400">
               Dashboard
             </p>
-            <h1 className="mt-2 text-3xl font-bold text-white">Meu Painel</h1>
+            <h1
+              className="mt-2 text-3xl font-bold text-white"
+              style={{ fontFamily: "Sora, sans-serif" }}
+            >
+              Meu Painel
+            </h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-400">
               Acompanhe seu histórico de orçamentos, gere novamente os PDFs e
               acesse rapidamente as configurações do perfil.
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button variant="ghost" onClick={() => { void navigate("/data"); }}>
-              Exportar/Importar Dados
-            </Button>
-            <Button variant="ghost" onClick={() => { void navigate("/clients"); }}>
-              Clientes
-            </Button>
-            <Button variant="ghost" onClick={() => { void navigate("/pipeline"); }}>
-              Pipeline
-            </Button>
-            <Button variant="ghost" onClick={handleResetBudgets}>
-              Resetar Orçamentos
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                void navigate("/profile");
-              }}
-            >
-              Empresas
-            </Button>
+          <div className="flex flex-col items-stretch gap-3 sm:items-end">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="ghost" onClick={() => { void navigate("/clients"); }}>
+                Clientes
+              </Button>
+              <Button variant="ghost" onClick={() => { void navigate("/pipeline"); }}>
+                Pipeline
+              </Button>
+              <Button variant="ghost" onClick={() => { void navigate("/profile"); }}>
+                Empresas
+              </Button>
+              <Button variant="ghost" onClick={() => { void navigate("/data"); }}>
+                Exportar/Importar Dados
+              </Button>
+              <Button variant="ghost" onClick={handleResetBudgets}>
+                Resetar Orçamentos
+              </Button>
+            </div>
             <Button
               onClick={() => {
                 void navigate("/builder");
@@ -279,34 +281,30 @@ export const HomePage = () => {
           </div>
 
           {budgets.length === 0 ? (
-            <div className="rounded-[28px] border border-dashed border-white/10 bg-white/3 p-3">
-              <EmptyState
-                title="Nenhum orçamento ainda"
-                description="Crie seu primeiro orçamento para ver o histórico aqui."
-                action={
-                  <Button
-                    onClick={() => {
-                      void navigate("/builder");
-                    }}
-                  >
-                    Criar Orçamento
-                  </Button>
-                }
-              />
-            </div>
+            <EmptyState
+              title="Nenhum orçamento ainda"
+              description="Crie seu primeiro orçamento para ver o histórico aqui."
+              action={
+                <Button
+                  onClick={() => {
+                    void navigate("/builder");
+                  }}
+                >
+                  Criar Orçamento
+                </Button>
+              }
+            />
           ) : filteredBudgets.length === 0 ? (
-            <div className="rounded-[28px] border border-dashed border-white/10 bg-white/3 p-3">
-              <EmptyState
-                title="Nenhum resultado encontrado"
-                description="Tente buscar por outro cliente, número ou documento."
-              />
-            </div>
+            <EmptyState
+              title="Nenhum resultado encontrado"
+              description="Tente buscar por outro cliente, número ou documento."
+            />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {filteredBudgets.map((budget) => (
                 <article
                   key={budget.id}
-                  className="rounded-[28px] border border-white/10 bg-white/4 p-5 shadow-[0_20px_50px_rgba(2,6,23,0.25)] transition hover:border-white/15 hover:bg-white/6"
+                  className="flex flex-col rounded-[28px] border border-white/10 bg-white/4 p-5 shadow-[0_20px_50px_rgba(2,6,23,0.25)] transition hover:border-white/15 hover:bg-white/6"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -317,29 +315,31 @@ export const HomePage = () => {
                         {budget.client.name}
                       </h2>
                     </div>
-                    <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-200">
+                    <span
+                      className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold ${getBudgetStatusAccent(budget.status)}`}
+                    >
                       {getBudgetStatusLabel(budget.status)}
                     </span>
                   </div>
 
-                  <dl className="mt-6 grid gap-4 text-sm">
-                    <div className="rounded-2xl border border-white/8 bg-slate-950/40 p-4">
-                      <dt className="text-slate-400">Data de Emissão</dt>
-                      <dd className="mt-1 font-medium text-slate-100">
+                  <dl className="mt-5 divide-y divide-white/8 border-t border-white/8 text-sm">
+                    <div className="flex items-center justify-between gap-4 py-2.5">
+                      <dt className="text-slate-400">Emitido em</dt>
+                      <dd className="font-medium text-slate-100">
                         {formatDate(budget.createdAt)}
                       </dd>
                     </div>
                     {budget.validUntil ? (
-                      <div className="rounded-2xl border border-white/8 bg-slate-950/40 p-4">
+                      <div className="flex items-center justify-between gap-4 py-2.5">
                         <dt className="text-slate-400">Válido até</dt>
-                        <dd className="mt-1 font-medium text-slate-100">
+                        <dd className="font-medium text-slate-100">
                           {formatDate(budget.validUntil)}
                         </dd>
                       </div>
                     ) : null}
-                    <div className="rounded-2xl border border-white/8 bg-slate-950/40 p-4">
+                    <div className="py-2.5">
                       <dt className="text-slate-400">Cliente</dt>
-                      <dd className="mt-2 grid gap-1 font-medium text-slate-100">
+                      <dd className="mt-1 grid gap-0.5 font-medium text-slate-100">
                         {budget.client.document ? (
                           <span>CPF/CNPJ: {budget.client.document}</span>
                         ) : null}
@@ -359,17 +359,13 @@ export const HomePage = () => {
                         ) : null}
                       </dd>
                     </div>
-                    <div className="rounded-2xl border border-white/8 bg-slate-950/40 p-4">
-                      <dt className="text-slate-400">Itens</dt>
-                      <dd className="mt-2 space-y-2 text-slate-100">
-                        <span className="block font-medium">
-                          {budget.items.length} item(ns) no orçamento
-                        </span>
+                    <div className="py-2.5">
+                      <dt className="text-slate-400">
+                        {budget.items.length} item(ns) no orçamento
+                      </dt>
+                      <dd className="mt-1 space-y-1 text-slate-400">
                         {budget.items.slice(0, 3).map((item) => (
-                          <span
-                            key={item.id}
-                            className="block text-xs text-slate-400"
-                          >
+                          <span key={item.id} className="block text-xs">
                             {item.quantidade} {item.unidade} -{" "}
                             {item.descricao || "Item sem descrição"} (
                             {formatCurrency(item.quantidade * item.valorUnitario)}
@@ -378,63 +374,63 @@ export const HomePage = () => {
                         ))}
                       </dd>
                     </div>
-                    <div className="rounded-2xl border border-white/8 bg-slate-950/40 p-4">
-                      <dt className="text-slate-400">Total</dt>
-                      <dd className="mt-1 text-lg font-semibold text-white">
-                        {formatCurrency(budget.totals.total)}
-                      </dd>
-                    </div>
                     {budget.paymentTerms || budget.terms ? (
-                      <div className="rounded-2xl border border-white/8 bg-slate-950/40 p-4">
+                      <div className="py-2.5">
                         <dt className="text-slate-400">Observações</dt>
-                        <dd className="mt-2 line-clamp-3 text-slate-100">
+                        <dd className="mt-1 line-clamp-3 text-slate-100">
                           {budget.paymentTerms || budget.terms}
                         </dd>
                       </div>
                     ) : null}
                   </dl>
 
-                  <div className="mt-6 grid gap-3">
-                    <p className="text-xs text-slate-500">
-                      Use a janela de impressão para imprimir ou salvar como
-                      PDF.
-                    </p>
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <Button
-                        variant="secondary"
-                        onClick={() => {
-                          void navigate(`/builder?edit=${budget.id}`);
-                        }}
-                      >
-                        Editar
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        onClick={() => {
-                          void navigate(`/builder?duplicate=${budget.id}`);
-                        }}
-                      >
-                        Duplicar
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        onClick={() => handlePrintBudget(budget.id)}
-                      >
-                        Imprimir / Salvar PDF
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        onClick={() => handleShareWhatsApp(budget)}
-                      >
-                        Compartilhar via WhatsApp
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={() => handleDeleteBudget(budget.id)}
-                      >
-                        Excluir
-                      </Button>
-                    </div>
+                  <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-slate-950/40 px-4 py-3">
+                    <span className="text-sm text-slate-400">Total</span>
+                    <span className="text-lg font-semibold text-white">
+                      {formatCurrency(budget.totals.total)}
+                    </span>
+                  </div>
+
+                  <p className="mt-4 text-xs text-slate-500">
+                    Use a janela de impressão para imprimir ou salvar como
+                    PDF.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        void navigate(`/builder?edit=${budget.id}`);
+                      }}
+                    >
+                      Editar
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        void navigate(`/builder?duplicate=${budget.id}`);
+                      }}
+                    >
+                      Duplicar
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => handlePrintBudget(budget.id)}
+                    >
+                      Imprimir / Salvar PDF
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => handleShareWhatsApp(budget)}
+                    >
+                      Compartilhar via WhatsApp
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="ml-auto"
+                      onClick={() => handleDeleteBudget(budget.id)}
+                    >
+                      Excluir
+                    </Button>
                   </div>
                 </article>
               ))}

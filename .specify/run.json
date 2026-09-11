@@ -2,8 +2,8 @@
   "demanda": "aproveite o serviço feito e continue. resolva tudo isso! otimize! melhore!",
   "feature": "specs/001-seo-mobile-profissional",
   "branch": "feature/seo-mobile-profissional",
-  "etapa": "deliver",
-  "status": "em_andamento",
+  "etapa": "concluido",
+  "status": "concluido",
   "retentativas": 0,
   "retentativas_totais": 1,
   "etapa_mais_avancada": 9,
@@ -100,6 +100,13 @@
       "alvo": null,
       "motivo": "",
       "em": "2026-09-01T21:55:42-03:00"
+    },
+    {
+      "etapa": "deliver",
+      "veredito": "ok",
+      "alvo": null,
+      "motivo": "",
+      "em": "2026-09-01T22:03:05-03:00"
     }
   ],
   "motivo_status": ""

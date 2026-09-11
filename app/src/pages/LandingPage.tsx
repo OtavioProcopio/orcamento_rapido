@@ -49,7 +49,7 @@ export function LandingPage() {
                 className="mt-1 text-base font-semibold text-white sm:text-lg"
                 style={{ fontFamily: "Sora, sans-serif" }}
               >
-                Orçamentos com presença, velocidade e controle local.
+                Orçamento pronto pra impressionar, direto do seu navegador.
               </p>
             </div>
           </div>
@@ -62,19 +62,18 @@ export function LandingPage() {
         <section className="grid gap-10 py-10 lg:grid-cols-[1.08fr_0.92fr] lg:items-center lg:py-16">
           <div className="max-w-3xl">
             <p className="inline-flex rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200">
-              Ferramenta para autônomos e MEIs que precisam passar segurança
+              Para autônomos e MEIs que precisam parecer profissionais desde o primeiro orçamento
             </p>
             <h1
               className="mt-6 text-4xl font-black leading-[1.02] text-white sm:text-5xl lg:text-7xl"
               style={{ fontFamily: "Sora, sans-serif" }}
             >
-              Feche mais rápido com um orçamento que já nasce profissional.
+              Feche mais rápido com um orçamento que já nasce com cara de empresa grande.
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-              O Orça Rápido foi feito para quem precisa responder clientes sem
-              improviso. Você cadastra a empresa, monta o orçamento, imprime ou
-              salva em PDF pelo navegador e mantém o histórico no próprio
-              dispositivo.
+              Cadastre a empresa uma vez, monte o orçamento e imprima ou salve
+              em PDF direto do navegador. Tudo fica guardado no próprio
+              aparelho, pronto pra quando o cliente pedir de novo.
             </p>
 
             <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -101,17 +100,17 @@ export function LandingPage() {
                   Resposta rápida
                 </p>
                 <p className="mt-3 text-sm leading-7 text-slate-300">
-                  Monte e entregue um orçamento com visual forte em poucos
-                  minutos.
+                  Monte e envie um orçamento com visual profissional em
+                  poucos minutos, sem sair da conversa com o cliente.
                 </p>
               </article>
               <article className={sectionCardClassName}>
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/80">
-                  Autoridade
+                  Credibilidade
                 </p>
                 <p className="mt-3 text-sm leading-7 text-slate-300">
-                  Documento com estrutura comercial séria para passar confiança
-                  desde o primeiro contato.
+                  Um documento com estrutura comercial séria — não um
+                  rascunho de WhatsApp virado orçamento.
                 </p>
               </article>
               <article className={sectionCardClassName}>
@@ -119,8 +118,8 @@ export function LandingPage() {
                   Controle local
                 </p>
                 <p className="mt-3 text-sm leading-7 text-slate-300">
-                  Seus dados ficam no navegador, sem depender de operação remota
-                  para o uso diário.
+                  Seus dados ficam no seu navegador. Sem servidor nosso, sem
+                  depender de internet pra usar no dia a dia.
                 </p>
               </article>
             </div>
@@ -172,8 +171,8 @@ export function LandingPage() {
                       Para que serve
                     </p>
                     <p className="mt-3 text-sm leading-7 text-slate-300">
-                      Organizar propostas, manter histórico, padronizar o visual
-                      comercial e reduzir o tempo entre atendimento e fechamento.
+                      Chega de orçamento perdido em conversa de WhatsApp.
+                      Aqui fica tudo organizado, com o mesmo padrão toda vez.
                     </p>
                   </div>
                   <div className="relative flex min-h-52 items-center justify-center overflow-hidden rounded-[26px] border border-white/10 bg-[linear-gradient(160deg,rgba(255,255,255,0.96),rgba(191,219,254,0.92))] p-8">
@@ -199,13 +198,13 @@ export function LandingPage() {
               className="mt-4 text-2xl font-bold text-white sm:text-3xl"
               style={{ fontFamily: "Sora, sans-serif" }}
             >
-              Dados sob controle e transparência no uso local.
+              Seus dados não saem do seu computador.
             </h2>
             <div className="mt-5 space-y-3 text-sm leading-7 text-slate-300">
-              <p>Os dados operacionais ficam armazenados localmente no navegador do usuário.</p>
-              <p>O sistema não depende de conta online para criar, consultar ou imprimir orçamentos.</p>
-              <p>O uso de dados deve respeitar finalidade comercial legítima, necessidade e cuidado com acesso ao dispositivo.</p>
-              <p>Para rotinas internas, o ideal é proteger o equipamento, limitar compartilhamento e revisar periodicamente o histórico salvo.</p>
+              <p>Clientes, orçamentos e dados da empresa ficam guardados só neste navegador, neste dispositivo.</p>
+              <p>Não existe conta na nuvem nem servidor nosso armazenando o que você cadastra.</p>
+              <p>Você cria, consulta e imprime orçamentos sem depender de internet ou de login em lugar nenhum.</p>
+              <p>Por isso mesmo, vale proteger o computador ou celular onde você usa o sistema — como faria com qualquer arquivo importante do negócio.</p>
             </div>
           </article>
 
@@ -217,7 +216,7 @@ export function LandingPage() {
               className="mt-4 text-2xl font-bold text-white sm:text-3xl"
               style={{ fontFamily: "Sora, sans-serif" }}
             >
-              O fluxo é simples porque a operação precisa ser simples.
+              Três passos. Nada além disso.
             </h2>
             <div className="mt-6 grid gap-4 md:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-slate-950/55 p-4">

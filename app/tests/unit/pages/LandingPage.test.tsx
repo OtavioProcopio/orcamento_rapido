@@ -119,7 +119,9 @@ describe("LandingPage", () => {
 
     expect(screen.getByText(/Segurança e LGPD/i)).toBeInTheDocument();
     expect(screen.getByText(/Como funciona/i)).toBeInTheDocument();
-    expect(screen.getByText(/Os dados operacionais ficam armazenados localmente/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Clientes, orçamentos e dados da empresa ficam guardados só neste navegador/i),
+    ).toBeInTheDocument();
   });
 
   it("sets a specific document title and meta description for the home route", () => {

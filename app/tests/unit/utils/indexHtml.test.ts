@@ -73,4 +73,20 @@ describe("index.html", () => {
       doc.querySelector('meta[name="theme-color"]')?.getAttribute("content"),
     ).toBeTruthy();
   });
+
+  it("has valid SoftwareApplication structured data", () => {
+    // Arrange
+    const script = doc.querySelector('script[type="application/ld+json"]');
+
+    // Act
+    const structuredData = JSON.parse(script?.textContent ?? "null");
+
+    // Assert
+    expect(structuredData).toMatchObject({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: "Orça Rápido",
+      url: SITE_ROOT,
+    });
+  });
 });

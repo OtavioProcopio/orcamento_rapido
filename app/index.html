@@ -79,6 +79,28 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self' https://gc.zgo.at; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://otavioprocopio.goatcounter.com; font-src 'self'; connect-src 'self' https://otavioprocopio.goatcounter.com; object-src 'none'; base-uri 'self'; form-action 'self';"
     />
+
+    <!--
+      Dado estruturado (schema.org) pra buscadores entenderem que isto é um
+      app grátis, sem precisar renderizar JS. Fica estático aqui pelo mesmo
+      motivo do Open Graph acima.
+    -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Orça Rápido",
+        "url": "https://otavioprocopio.github.io/orcamento_rapido/",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "Crie, imprima e acompanhe orçamentos profissionais em minutos. Grátis, sem cadastro complicado e com seus dados guardados só no seu navegador.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "BRL"
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
